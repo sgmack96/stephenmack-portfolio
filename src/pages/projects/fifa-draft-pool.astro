@@ -1,0 +1,121 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+
+<Base title="FIFA World Cup Draft Pool — Stephen Mack" description="Fantasy draft order based on World Cup results. Monte Carlo scoring, multi-pool deployment, zero infrastructure.">
+    <a href="/" style="color: var(--text-dim); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.25rem; margin-bottom: 2rem;">&larr; Back to Home</a>
+
+    <header style="margin-bottom: 3rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <span style="font-size: 1.5rem;">⚽</span>
+            <h1 style="font-size: 1.75rem; font-weight: 700;">FIFA World Cup Draft Pool</h1>
+        </div>
+        <p style="color: var(--text-muted); font-size: 1.0625rem; margin-bottom: 1.25rem;">
+            Fantasy draft order for 12 friends — determined by World Cup results, calibrated by Monte Carlo simulation.
+        </p>
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+            <a href="https://fifa.macksportreport.com" target="_blank" class="btn btn-primary">View Live App &nearr;</a>
+            <span class="badge badge-live">Live</span>
+            <div style="display: flex; gap: 0.375rem; flex-wrap: wrap;">
+                <span class="tech-tag">Workers</span>
+                <span class="tech-tag">KV</span>
+                <span class="tech-tag">TypeScript</span>
+            </div>
+        </div>
+    </header>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">The Problem</h2>
+        <p style="color: var(--text-muted); line-height: 1.7;">
+            12 friends enter a pool. Each person is randomly assigned 4 World Cup teams — one from each tier. As the tournament plays out, your teams earn fantasy points. Most points = first pick in the NFL fantasy football draft. But without accounting for team strength, the person who gets Spain and France always wins. The scoring needed to be fair — every tier should matter.
+        </p>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">What I Built</h2>
+        <div style="color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 0.75rem;">
+            <p>
+                A full-stack web app that manages the entire pool lifecycle: draft randomization with group-conflict constraints, live match result entry, fantasy point calculation with tier-weighted multipliers, and a real-time leaderboard. Three independent pools share the same codebase with separate KV namespaces, and a central admin hub fans out match results to all three simultaneously.
+            </p>
+            <p>
+                The scoring system was calibrated using Monte Carlo simulation — 5,000 full tournament runs using real betting odds. The simulation revealed that without tier multipliers, Tier 1 teams dominated ~96% of every owner's score. The chosen multipliers (1x/2x/4x/8x) produce balanced contribution across tiers — each tier accounts for roughly 25-30% of the winning owner's score.
+            </p>
+        </div>
+        <!-- SCREENSHOT: fifa-leaderboard.png — leaderboard page with ranked owners and team breakdowns -->
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 0.5rem; padding: 3rem; text-align: center; color: var(--text-dim); margin-top: 1.5rem; font-size: 0.875rem;">
+            Screenshot: Leaderboard with ranked owners
+        </div>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Architecture</h2>
+<pre>{`┌──────────────────────────────────────────────────────────┐
+│                    Cloudflare Edge                        │
+│                                                          │
+│  ┌─────────────────┐     ┌─────────────────────────────┐ │
+│  │  Workers (V8)   │────▶│     KV Namespace             │ │
+│  │                 │     │  ┌─────────────────────────┐ │ │
+│  │  - Router       │     │  │ owners: [...12 owners]  │ │ │
+│  │  - Draft logic  │     │  │ results: [...matches]   │ │ │
+│  │  - Scoring calc │     │  │ owner_names: [...names] │ │ │
+│  │  - SSR HTML     │     │  └─────────────────────────┘ │ │
+│  └─────────────────┘     └─────────────────────────────┘ │
+│                                                          │
+│  Pool 1: fifa.macksportreport.com                        │
+│  Pool 2: ox.macksportreport.com                          │
+│  Pool 3: bbff.macksportreport.com                        │
+│  (Separate Workers + separate KV namespaces)             │
+│                                                          │
+│  ┌─────────────────────────────────────────────────────┐ │
+│  │  Admin Hub (admin.macksportreport.com)              │ │
+│  │  Enter scores once → fans out to all 3 pool APIs   │ │
+│  └─────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────┘`}</pre>
+    </section>
+
+    <details>
+        <summary>Technical Deep Dive</summary>
+        <div style="color: var(--text-muted); line-height: 1.7;">
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">Scoring System</h3>
+            <p style="margin-bottom: 1rem;">Points = Round Weight &times; Tier Multiplier. Group wins earn 1 point (base), while the Final earns 5 points. Tier multipliers scale these: T1 teams get 1x, T2 gets 2x, T3 gets 4x, and T4 (Cinderellas) get 8x. A T4 team winning a group match earns 8 points — the same as a T1 team reaching the semifinals.</p>
+
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Draft Algorithm</h3>
+            <p style="margin-bottom: 1rem;">The draft randomizer assigns 1 team per tier to each owner with a group conflict constraint: no owner can have two teams from the same FIFA group (they'd play each other, creating a conflict of interest). The algorithm shuffles teams per tier and assigns greedily with backtracking, retrying up to 200 times if a shuffle produces an unsolvable assignment.</p>
+
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Multi-Pool Support</h3>
+            <p style="margin-bottom: 1rem;">Three pools run on identical source code deployed as separate Workers with separate KV namespaces. A fourth Worker (the Admin Hub) acts as a fan-out proxy — when a match result is submitted, it fires 3 parallel <code>fetch()</code> calls to all pool APIs simultaneously. Each pool's response is shown individually so the admin knows if any pool had an issue.</p>
+
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Monte Carlo Calibration</h3>
+            <p>The <code>simulation/</code> directory contains Python scripts that ran 5,000 full tournament simulations using real betting odds. The simulation tested various multiplier combinations and measured tier contribution variance. The 1x/2x/4x/8x scheme was chosen because it produces the most balanced expected contribution: each tier accounts for ~25-30% of the winning owner's total score.</p>
+        </div>
+    </details>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Cloudflare Products Used</h2>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; color: var(--text-muted); line-height: 1.6;">
+            <p><strong style="color: var(--text);">Workers</strong> — Application runtime. Full-stack SSR with routing, API handlers, draft logic, scoring calculations, and HTML rendering. Zero cold starts, global distribution. ~1,500 lines of TypeScript, no framework.</p>
+            <p><strong style="color: var(--text);">KV</strong> — Global key-value storage. Three keys per pool (<code>owners</code>, <code>results</code>, <code>owner_names</code>) serve the entire tournament lifecycle. Sub-10ms reads at the edge.</p>
+            <p><strong style="color: var(--text);">Custom Domains</strong> — Each pool has its own domain via Cloudflare DNS + Workers routes. The same codebase deploys to 3 domains with different KV bindings.</p>
+            <p><strong style="color: var(--text);">Wrangler CLI</strong> — Single-command deployment. <code>wrangler deploy</code> pushes to 300+ edge locations instantly.</p>
+        </div>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">What I Learned</h2>
+        <ul style="color: var(--text-muted); line-height: 1.7; list-style: none; display: flex; flex-direction: column; gap: 0.625rem;">
+            <li>&#8226; KV is the right database for simple global state — three keys serve an entire multi-round tournament for 12 users at sub-10ms reads</li>
+            <li>&#8226; Workers SSR replaces an entire Node.js server. No framework, no bundler, no cold starts, no Docker — total upload is 58KB (14KB gzipped)</li>
+            <li>&#8226; Multi-tenancy via separate KV namespaces + identical Workers code is the pattern for white-label SaaS on Cloudflare</li>
+            <li>&#8226; Monte Carlo simulation revealed that without tier multipliers, top-seeded teams dominated 96% of outcomes — math matters for fairness, not just intuition</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Career Relevance</h2>
+        <ul style="color: var(--text-muted); line-height: 1.7; list-style: none; display: flex; flex-direction: column; gap: 0.625rem;">
+            <li>&#8226; Demonstrates Workers as a complete full-stack platform — compute + storage + routing, zero origin server</li>
+            <li>&#8226; Multi-tenant deployment pattern maps directly to how startups build SaaS products on Cloudflare</li>
+            <li>&#8226; Monte Carlo calibration shows data-driven product decisions, not just shipping features</li>
+        </ul>
+    </section>
+</Base>

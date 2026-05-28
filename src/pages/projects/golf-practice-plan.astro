@@ -1,0 +1,131 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+
+<Base title="Golf Practice Plan — Stephen Mack" description="12-week golf practice tracker with cross-device KV sync, PIN-based auth, and mobile-first UX on Cloudflare Workers.">
+    <a href="/" style="color: var(--text-dim); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.25rem; margin-bottom: 2rem;">&larr; Back to Home</a>
+
+    <header style="margin-bottom: 3rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <span style="font-size: 1.5rem;">⛳</span>
+            <h1 style="font-size: 1.75rem; font-weight: 700;">Golf Practice Plan</h1>
+        </div>
+        <p style="color: var(--text-muted); font-size: 1.0625rem; margin-bottom: 1.25rem;">
+            A 12-week structured golf practice tracker with cross-device sync and mobile-first UX.
+        </p>
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+            <a href="https://plan.macksportreport.com" target="_blank" class="btn btn-primary">View Live App &nearr;</a>
+            <span class="badge badge-live">Live</span>
+            <div style="display: flex; gap: 0.375rem; flex-wrap: wrap;">
+                <span class="tech-tag">Workers</span>
+                <span class="tech-tag">KV</span>
+                <span class="tech-tag">Hono</span>
+                <span class="tech-tag">TypeScript</span>
+            </div>
+        </div>
+    </header>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">The Problem</h2>
+        <div style="color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 0.75rem;">
+            <p>
+                Existing golf apps track scores but not structured practice. I wanted a system that runs a weekly drill program, saves progress across devices without requiring an account, works perfectly on mobile, and costs nothing to run.
+            </p>
+            <p>
+                No app store, no backend server, no database subscription. Just a URL I open on my phone at the range.
+            </p>
+        </div>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">What I Built</h2>
+        <div style="color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 0.75rem;">
+            <p>
+                A mobile-first web app that runs a structured 12-week practice program with 26 drills across putting, chipping, approach play, and driving. Each drill has a goal, scoring type, and pass threshold. Progress is tracked per-session with a confirm workflow — you enter your number, tap the checkmark, and the result is logged.
+            </p>
+            <p>
+                Cross-device sync uses Cloudflare KV with a PIN-based model. On first visit, you set a practice PIN (e.g., <code>mack2026</code>). That PIN keys your progress in KV. Open the same URL on another device, enter the same PIN, and all your history loads instantly. No account, no OAuth, no email verification.
+            </p>
+            <p>
+                The app went from v1.0 to v4.2 in three days — four complete architectural rewrites driven by real usage at the driving range.
+            </p>
+        </div>
+        <!-- SCREENSHOT: plan-drill.png — mobile view of a drill in progress with confirm button -->
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 0.5rem; padding: 3rem; text-align: center; color: var(--text-dim); margin-top: 1.5rem; font-size: 0.875rem;">
+            Screenshot: Mobile view of drill in progress
+        </div>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Architecture</h2>
+<pre>{`┌─────────────────────────────────────────────────┐
+│              Cloudflare Edge                     │
+│                                                  │
+│  ┌──────────────────┐    ┌────────────────────┐  │
+│  │  Workers (Hono)  │───▶│  KV Namespace      │  │
+│  │                  │    │                    │  │
+│  │  - TypeScript    │    │  progress/[pin]    │  │
+│  │  - SSR HTML      │    │  = [drills, hist]  │  │
+│  │  - API routes    │    │                    │  │
+│  └──────────────────┘    └────────────────────┘  │
+│                                                  │
+│  plan.macksportreport.com                        │
+│                                                  │
+│  Client:                                         │
+│  - localStorage (offline fallback)               │
+│  - Debounced KV sync (500ms)                     │
+│  - PIN stored in localStorage                    │
+└─────────────────────────────────────────────────┘`}</pre>
+    </section>
+
+    <details>
+        <summary>Technical Deep Dive</summary>
+        <div style="color: var(--text-muted); line-height: 1.7;">
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">Session Model</h3>
+            <p style="margin-bottom: 1rem;">On page load, confirmed drills reset to <code>made=0, confirmed=false</code> (new session). Unconfirmed in-progress values survive page close. History entries always append — multiple sessions on the same day produce multiple rows. This means you can practice twice in a day and see both sessions in your history.</p>
+
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">KV Merge Strategy</h3>
+            <p style="margin-bottom: 1rem;">On load: fetch KV data, merge with local data. KV wins on conflict (it's the authoritative source), local fills gaps (for data saved offline). This simple rule handles all edge cases: phone dies mid-practice, switch devices, clear browser data — KV always has the truth.</p>
+
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">PIN-Based Auth</h3>
+            <p style="margin-bottom: 1rem;">Instead of OAuth or email verification, users set a PIN on first visit. The PIN becomes the KV key: <code>progress/[pin]</code>. It's stored in localStorage for zero-friction return visits. This is the right pattern for a personal tool — no signup flow, no password reset, no infrastructure. The tradeoff (PINs aren't secure) is acceptable for practice statistics.</p>
+
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Version History: v1 to v4.2 in 3 Days</h3>
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.5rem;">
+                <li><strong style="color: var(--text);">v1.0</strong> — Basic drill list with local-only tracking. No sync.</li>
+                <li><strong style="color: var(--text);">v3.0</strong> — Full rewrite: progress tracking model, accuracy mode, history charts.</li>
+                <li><strong style="color: var(--text);">v4.0</strong> — Second rewrite: universal confirm flow for all 26 drills, session-based model.</li>
+                <li><strong style="color: var(--text);">v4.2</strong> — KV sync with PIN, offline fallback, merge strategy, sync status indicator.</li>
+            </ul>
+            <p style="margin-top: 0.75rem;">Each version was driven by real usage at the driving range — v1's local-only storage failed when I switched phones, so v4.2 added KV sync. v3's auto-complete was frustrating when I wanted to edit, so v4 switched to explicit confirmation.</p>
+        </div>
+    </details>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Cloudflare Products Used</h2>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; color: var(--text-muted); line-height: 1.6;">
+            <p><strong style="color: var(--text);">Workers</strong> — Application runtime with Hono micro-framework. Routes, SSR, and API handlers in a single TypeScript file. Zero cold starts, instant deploys.</p>
+            <p><strong style="color: var(--text);">KV</strong> — Cross-device progress sync. Progress keyed by PIN, debounced writes (500ms), offline-tolerant merge on load. Sub-10ms reads globally.</p>
+            <p><strong style="color: var(--text);">Wrangler</strong> — Single-command deploy pipeline. <code>wrangler deploy</code> pushes to 300+ cities. No CI/CD, no Docker, no build pipeline.</p>
+        </div>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">What I Learned</h2>
+        <ul style="color: var(--text-muted); line-height: 1.7; list-style: none; display: flex; flex-direction: column; gap: 0.625rem;">
+            <li>&#8226; Hono is the right micro-framework for Workers — lightweight, typed, zero magic, and the routing API maps directly to how you think about REST endpoints</li>
+            <li>&#8226; PIN-based sync (instead of OAuth) is the right call for a personal tool — zero friction, all the cross-device benefit, acceptable security tradeoff for non-sensitive data</li>
+            <li>&#8226; KV merge strategy on conflict: KV wins, local fills gaps — a simple rule that handles all edge cases without complex conflict resolution</li>
+            <li>&#8226; Session model (confirmed vs in-progress) required careful state design — what persists vs what resets on load is a UX decision disguised as a data model question</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Career Relevance</h2>
+        <ul style="color: var(--text-muted); line-height: 1.7; list-style: none; display: flex; flex-direction: column; gap: 0.625rem;">
+            <li>&#8226; Real-world KV patterns for personal/SMB tools — most startups don't need a relational database for MVP state management</li>
+            <li>&#8226; Zero-dependency TypeScript SSR demonstrates that Workers can replace an entire application backend without a framework</li>
+            <li>&#8226; v1 to v4.2 in 3 days shows iteration velocity on the Cloudflare platform — from idea to global deployment in one command</li>
+        </ul>
+    </section>
+</Base>

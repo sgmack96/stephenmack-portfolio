@@ -1,0 +1,120 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Stephen Mack — Solutions Engineer">
+    <section style="margin-bottom: 4rem;">
+        <h1 style="font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem;">Stephen Mack</h1>
+        <p style="font-size: 1.125rem; color: var(--accent); margin-bottom: 1.5rem;">Solutions Engineer, Cloudflare</p>
+        <p style="font-size: 1.125rem; color: var(--text); line-height: 1.7; margin-bottom: 1rem;">
+            I build production AI applications on Cloudflare's edge platform.
+        </p>
+        <p style="color: var(--text-muted); line-height: 1.7;">
+            Every project ships to Workers, runs in 300+ cities, and demonstrates platform capabilities I use with startup customers every day.
+        </p>
+    </section>
+
+    <section style="margin-bottom: 4rem;">
+        <h2 style="font-size: 0.8125rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1.5rem;">About</h2>
+
+        <div style="display: flex; flex-direction: column; gap: 1rem; color: var(--text-muted); line-height: 1.7;">
+            <p>
+                I'm a Solutions Engineer at Cloudflare focused on AI infrastructure for startup technology companies. My work involves helping engineering teams understand and deploy Cloudflare's platform — from Workers and D1 to AI Gateway and Zero Trust.
+            </p>
+            <p>
+                I run a 30-day sprint building production AI applications on Cloudflare's platform — not tutorials, but real apps with real Cloudflare products solving real problems. Each project is an exploration of how the platform hangs together at scale.
+            </p>
+            <p>
+                I'm interested in AI engineering roles that combine deep technical work with customer-facing impact — specifically at companies where AI infrastructure, observability, and security are first-class concerns.
+            </p>
+        </div>
+    </section>
+
+    <section>
+        <h2 style="font-size: 0.8125rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1.5rem;">Projects</h2>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+            <!-- FIFA Draft Pool -->
+            <a href="/projects/fifa-draft-pool" style="text-decoration: none;">
+                <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.5rem; transition: border-color 0.15s; height: 100%;" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--border)'">
+                    <div style="display: flex; align-items: center; gap: 0.625rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">⚽</span>
+                        <h3 style="font-size: 1rem; font-weight: 600; color: var(--text);">FIFA World Cup Draft Pool</h3>
+                    </div>
+                    <div style="margin-bottom: 0.75rem;">
+                        <span class="badge badge-live">Live</span>
+                    </div>
+                    <p style="font-size: 0.8125rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem;">
+                        Fantasy draft order for 12 friends based on World Cup results. Monte Carlo simulation calibrates scoring across 4 team tiers. Multi-pool deployment, central admin hub, zero infrastructure.
+                    </p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.375rem;">
+                        <span class="tech-tag">Workers</span>
+                        <span class="tech-tag">KV</span>
+                        <span class="tech-tag">TypeScript</span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Golf Practice Plan -->
+            <a href="/projects/golf-practice-plan" style="text-decoration: none;">
+                <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.5rem; transition: border-color 0.15s; height: 100%;" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--border)'">
+                    <div style="display: flex; align-items: center; gap: 0.625rem; margin-bottom: 0.75rem;">
+                        <span style="font-size: 1.25rem;">⛳</span>
+                        <h3 style="font-size: 1rem; font-weight: 600; color: var(--text);">Golf Practice Plan</h3>
+                    </div>
+                    <div style="margin-bottom: 0.75rem;">
+                        <span class="badge badge-live">Live</span>
+                    </div>
+                    <p style="font-size: 0.8125rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem;">
+                        12-week golf practice tracker with cross-device KV sync. PIN-based authentication, session model, mobile-first UX. Built without a framework in ~1,500 lines of TypeScript.
+                    </p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.375rem;">
+                        <span class="tech-tag">Workers</span>
+                        <span class="tech-tag">KV</span>
+                        <span class="tech-tag">Hono</span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Golf AI Platform (Coming Soon) -->
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.5rem; opacity: 0.7; height: 100%;">
+                <div style="display: flex; align-items: center; gap: 0.625rem; margin-bottom: 0.75rem;">
+                    <span style="font-size: 1.25rem;">🤖</span>
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text);">Golf AI Platform Demo</h3>
+                </div>
+                <div style="margin-bottom: 0.75rem;">
+                    <span class="badge badge-soon">Coming Soon</span>
+                </div>
+                <p style="font-size: 0.8125rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem;">
+                    Full AI platform demo: Workers AI, AI Gateway, D1, Access (multi-IdP), DLP, prompt injection defense, audit log. 13 Cloudflare products in one application.
+                </p>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.375rem;">
+                    <span class="tech-tag">Workers AI</span>
+                    <span class="tech-tag">AI Gateway</span>
+                    <span class="tech-tag">Access</span>
+                    <span class="tech-tag">D1</span>
+                    <span class="tech-tag">R2</span>
+                </div>
+            </div>
+
+            <!-- AI Sales Co-Pilot (Coming Soon) -->
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.5rem; opacity: 0.7; height: 100%;">
+                <div style="display: flex; align-items: center; gap: 0.625rem; margin-bottom: 0.75rem;">
+                    <span style="font-size: 1.25rem;">💼</span>
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text);">AI Technical Sales Co-Pilot</h3>
+                </div>
+                <div style="margin-bottom: 0.75rem;">
+                    <span class="badge badge-soon">Coming Soon</span>
+                </div>
+                <p style="font-size: 0.8125rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem;">
+                    SE research agent with Vectorize RAG. Describe a prospect's stack in plain English — get back a Cloudflare migration plan, component mapping, and cost comparison.
+                </p>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.375rem;">
+                    <span class="tech-tag">Workers AI</span>
+                    <span class="tech-tag">Vectorize</span>
+                    <span class="tech-tag">D1</span>
+                </div>
+            </div>
+        </div>
+    </section>
+</Base>
