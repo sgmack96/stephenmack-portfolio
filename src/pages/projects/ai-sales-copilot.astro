@@ -1,0 +1,182 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+
+<Base title="AI Technical Sales Co-Pilot — Stephen Mack" description="AI-powered pre-call research and architecture planning tool for Solutions Engineers. Vectorize RAG over 80 Cloudflare product chunks. Deployed on Workers.">
+    <a href="/" style="color: var(--text-dim); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.25rem; margin-bottom: 2rem;">&larr; Back to Home</a>
+
+    <header style="margin-bottom: 3rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <span style="font-size: 1.5rem;">💼</span>
+            <h1 style="font-size: 1.75rem; font-weight: 700;">AI Technical Sales Co-Pilot</h1>
+        </div>
+        <p style="color: var(--text-muted); font-size: 1.0625rem; margin-bottom: 1.25rem;">
+            Describe a prospect's tech stack in plain English — get back a structured Cloudflare migration plan, component mapping, cost comparison, and 3-phase migration path. Grounded in a 80-chunk RAG knowledge base of real product documentation.
+        </p>
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+            <a href="https://ai-sales-copilot.stephenmack96.workers.dev" target="_blank" class="btn btn-primary">View Live App &nearr;</a>
+            <span class="badge badge-live">Live</span>
+            <div style="display: flex; gap: 0.375rem; flex-wrap: wrap;">
+                <span class="tech-tag">Workers</span>
+                <span class="tech-tag">Workers AI</span>
+                <span class="tech-tag">Vectorize</span>
+                <span class="tech-tag">KV</span>
+                <span class="tech-tag">D1</span>
+                <span class="tech-tag">Hono</span>
+            </div>
+        </div>
+    </header>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">The Problem</h2>
+        <div style="color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 0.75rem;">
+            <p>
+                Before a customer call, a Solutions Engineer needs to know: which Cloudflare products map to what the prospect is currently using, what the migration complexity looks like, and how to frame the cost comparison. That research takes 30-60 minutes manually — and the quality varies by how well the SE knows each product area.
+            </p>
+            <p>
+                The alternative is a hallucinating chatbot that confidently makes up product names and pricing. That's worse than doing it manually.
+            </p>
+        </div>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">What I Built</h2>
+        <div style="color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 0.75rem;">
+            <p>
+                Two agents with a keyword-based orchestrator that routes requests without an LLM call:
+            </p>
+            <p>
+                <strong style="color: var(--text);">Research Agent</strong> — given a company name, it searches the web (DuckDuckGo), scrapes their homepage for tech stack signals, fetches recent news (NewsAPI), and synthesizes a structured company profile with Cloudflare opportunities. Takes 10-15 seconds. Replaces 30-60 minutes of manual pre-call research.
+            </p>
+            <p>
+                <strong style="color: var(--text);">Architecture Agent</strong> — given a tech stack description ("They use AWS Lambda, CloudFront, S3, and Auth0"), it extracts every component via keyword map (no LLM needed for extraction), queries a 80-chunk Vectorize knowledge base for each component in parallel, maps each to its Cloudflare equivalent with migration complexity, generates a 3-phase migration plan, and estimates cost savings. Takes 25-40 seconds for 3-5 components.
+            </p>
+            <p>
+                The knowledge base has 80 hand-written chunks covering 20 Cloudflare products — 4 chunk types per product: overview, competitor comparison, pricing tiers, and use cases. Grounding the architecture agent in this KB means it never invents product names or pricing figures.
+            </p>
+        </div>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Architecture</h2>
+<pre>{`POST /api/v1/copilot
+        │
+        ▼
+    ORCHESTRATOR
+    ├─ Keyword classifier (regex, 0ms) ─→ skips LLM for obvious patterns
+    ├─ LLM fallback (Workers AI, 5-10s) ─→ for ambiguous messages
+    ├─ Route to agent
+    ├─ KV: store session history (fire-and-forget)
+    └─ D1: write audit log (fire-and-forget)
+        │
+        ├──────────────────┬──────────────────┐
+        ▼                  ▼
+  Research Agent    Architecture Agent
+  ├─ Web search     ├─ Keyword extraction (regex map)
+  ├─ Web scraper    ├─ Vectorize RAG (parallel queries)
+  └─ News API       └─ 3-phase migration plan`}</pre>
+    </section>
+
+    <details>
+        <summary>Technical Deep Dive</summary>
+        <div style="color: var(--text-muted); line-height: 1.7;">
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">Orchestrator design: keyword-first, LLM-fallback</h3>
+            <p style="margin-bottom: 1rem;">Most requests contain obvious patterns ("Research Stripe", "They use Lambda"). A regex keyword classifier handles these in 0ms — no LLM call. Only genuinely ambiguous messages trigger a Workers AI classification call (~5-10s). This optimization cuts response time by 5-10s for 80%+ of requests. The architecture agent also extracts tech stack components via keyword map rather than LLM — same idea applied to component extraction.</p>
+
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Parallel Vectorize queries</h3>
+            <p style="margin-bottom: 1rem;">For a 5-component tech stack, the architecture agent fires 5 Vectorize queries simultaneously with <code>Promise.all</code>. Each query returns the top-2 relevant chunks for that component. Results are deduplicated and capped at 10 total chunks to keep the prompt under ~4,000 tokens. Total Vectorize query time: ~1-3s regardless of component count.</p>
+
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Knowledge base construction</h3>
+            <p style="margin-bottom: 1rem;">80 chunks covering 20 Cloudflare products, each with 4 chunk types: overview (what it is, key features), comparison (vs specific named competitors), pricing (exact tiers with real dollar amounts), and use-case (startup and enterprise scenarios). Hand-written rather than scraped — scraped docs produce inconsistent chunks that embed poorly. Each chunk is ~250-400 words, sized for the BGE-base-en-v1.5 embedding model's optimal input length.</p>
+
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Session memory with KV</h3>
+            <p>Conversation history is stored per session ID in KV. Each session key stores a JSON array of turns. KV reads are sub-10ms globally, and history is injected into the prompt on every request for continuity across multiple questions in the same research session.</p>
+        </div>
+    </details>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Live Endpoints</h2>
+        <div style="display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1.5rem; font-size: 0.875rem; color: var(--text-muted);">
+            <code style="color: var(--text);">GET /health</code>
+            <span>Health check — returns version and active agents</span>
+            <code style="color: var(--text);">POST /api/v1/copilot</code>
+            <span>Main endpoint — send a message, get agent output</span>
+            <code style="color: var(--text);">GET /session/:id</code>
+            <span>Retrieve conversation history for a session</span>
+        </div>
+        <div style="margin-top: 1.25rem;">
+            <pre style="font-size: 0.8rem;">{`# Research a company
+curl -X POST https://ai-sales-copilot.stephenmack96.workers.dev/api/v1/copilot \\
+  -H "Content-Type: application/json" \\
+  -d '{"session_id":"demo-001","message":"Research Stripe"}'
+
+# Design an architecture
+curl -X POST https://ai-sales-copilot.stephenmack96.workers.dev/api/v1/copilot \\
+  -H "Content-Type: application/json" \\
+  -d '{"session_id":"demo-002","message":"They use Lambda, CloudFront, S3, and Auth0"}'`}</pre>
+        </div>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Cloudflare Products Used</h2>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; color: var(--text-muted); line-height: 1.6;">
+            <p><strong style="color: var(--text);">Workers</strong> — Hono router, orchestrator, agent dispatch, web scraping, news API integration. All compute at the edge with zero cold starts.</p>
+            <p><strong style="color: var(--text);">Workers AI</strong> — Llama 3 8B for chat generation, BGE-base-en-v1.5 for embedding 80 product chunks. LLM fallback for intent classification when keyword matching is insufficient.</p>
+            <p><strong style="color: var(--text);">Vectorize</strong> — 80 vectors, cosine similarity. Parallel queries per component, results merged by score and capped at 10 chunks for prompt injection.</p>
+            <p><strong style="color: var(--text);">KV</strong> — Session history storage. One key per session ID, JSON array of conversation turns. Sub-10ms reads globally.</p>
+            <p><strong style="color: var(--text);">D1</strong> — Audit log: every agent run logged with latency, session ID, and model used.</p>
+        </div>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Performance</h2>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem; color: var(--text-muted);">
+                <thead>
+                    <tr>
+                        <th style="background: var(--surface); border: 1px solid var(--border); padding: 0.625rem 0.875rem; text-align: left; color: var(--text);">Query</th>
+                        <th style="background: var(--surface); border: 1px solid var(--border); padding: 0.625rem 0.875rem; text-align: left; color: var(--text);">Components</th>
+                        <th style="background: var(--surface); border: 1px solid var(--border); padding: 0.625rem 0.875rem; text-align: left; color: var(--text);">Latency</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="border: 1px solid var(--border); padding: 0.5rem 0.875rem;">Single component lookup</td>
+                        <td style="border: 1px solid var(--border); padding: 0.5rem 0.875rem;">1</td>
+                        <td style="border: 1px solid var(--border); padding: 0.5rem 0.875rem;">~24s</td>
+                    </tr>
+                    <tr style="background: rgba(255,255,255,0.02);">
+                        <td style="border: 1px solid var(--border); padding: 0.5rem 0.875rem;">Vercel + Supabase + Auth0</td>
+                        <td style="border: 1px solid var(--border); padding: 0.5rem 0.875rem;">3</td>
+                        <td style="border: 1px solid var(--border); padding: 0.5rem 0.875rem;">~36s</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid var(--border); padding: 0.5rem 0.875rem;">Lambda + CloudFront + S3 + RDS + VPN</td>
+                        <td style="border: 1px solid var(--border); padding: 0.5rem 0.875rem;">5</td>
+                        <td style="border: 1px solid var(--border); padding: 0.5rem 0.875rem;">~42s</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p style="color: var(--text-dim); font-size: 0.8125rem; margin-top: 0.75rem;">Latency is dominated by Workers AI (Llama 3 8B) generation time. Routing, embedding, and Vectorize queries account for under 3s total. Streaming (not implemented in this version) would reduce perceived latency significantly.</p>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">What I Learned</h2>
+        <ul style="color: var(--text-muted); line-height: 1.7; list-style: none; display: flex; flex-direction: column; gap: 0.625rem;">
+            <li>&#8226; <strong style="color: var(--text);">Keyword classifiers beat LLMs for intent routing.</strong> 80%+ of requests match obvious patterns. A regex classifier adds 0ms overhead vs 5-10s for an LLM call. Only use the LLM when the classifier genuinely can't decide.</li>
+            <li>&#8226; <strong style="color: var(--text);">Hand-write your KB chunks.</strong> Scraping product docs produces inconsistent chunk quality that embeds poorly. 80 hand-written chunks with consistent structure outperform 500 scraped chunks in retrieval quality.</li>
+            <li>&#8226; <strong style="color: var(--text);">Store content in vector metadata at upsert time.</strong> Retrieving chunk text after a Vectorize search without storing it in metadata requires a second lookup — a round trip you can eliminate entirely.</li>
+            <li>&#8226; <strong style="color: var(--text);">Fire-and-forget is correct for audit writes.</strong> KV session writes and D1 audit logs don't need to block the response. <code>ctx.waitUntil()</code> or <code>Promise.allSettled()</code> keeps them non-blocking but guarantees they complete.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Career Relevance</h2>
+        <ul style="color: var(--text-muted); line-height: 1.7; list-style: none; display: flex; flex-direction: column; gap: 0.625rem;">
+            <li>&#8226; First production LLM application — deployed, live, and callable. The knowledge base design and RAG retrieval pattern is the foundation that SE Intel (the next project) builds on.</li>
+            <li>&#8226; Demonstrates production RAG design: parallel Vectorize queries, chunk capping for prompt budget management, metadata-stored content for zero round-trips.</li>
+            <li>&#8226; The orchestrator pattern — keyword classifier first, LLM fallback — is the right engineering tradeoff for cost and latency at scale. Not every decision needs an LLM.</li>
+        </ul>
+    </section>
+</Base>

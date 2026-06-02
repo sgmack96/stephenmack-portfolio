@@ -1,0 +1,40 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog')).sort(
+  (a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+);
+---
+
+<Base title="Writing — Stephen Mack" description="Architecture write-ups and technical deep-dives on building production AI systems on Cloudflare.">
+    <a href="/" style="color: var(--text-dim); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.25rem; margin-bottom: 2rem;">&larr; Back to Home</a>
+
+    <section style="margin-bottom: 3rem;">
+        <h1 style="font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem;">Writing</h1>
+        <p style="color: var(--text-muted); font-size: 1rem; line-height: 1.7;">
+            Architecture write-ups on building production AI systems on Cloudflare.
+        </p>
+    </section>
+
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+        {posts.map(post => (
+                    <a href={`/blog/${post.id.replace(/\.mdx?$/, '')}`} style="text-decoration: none;">
+                <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.5rem; transition: border-color 0.15s;" onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--border)'">
+                    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.625rem;">
+                        <h2 style="font-size: 1.0625rem; font-weight: 600; color: var(--text); line-height: 1.4;">{post.data.title}</h2>
+                        <span style="font-size: 0.75rem; color: var(--text-dim); white-space: nowrap; padding-top: 0.2rem;">{new Date(post.data.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.875rem; line-height: 1.6; margin-bottom: 1rem;">{post.data.description}</p>
+                    {post.data.tags && (
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.375rem;">
+                            {post.data.tags.map((tag: string) => (
+                                <span class="tech-tag">{tag}</span>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </a>
+        ))}
+    </div>
+</Base>
