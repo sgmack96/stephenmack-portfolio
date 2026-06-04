@@ -96,6 +96,8 @@ type: "weekly"
 week: ${WEEK}
 ---
 
+<!-- PUBLIC SOURCES ONLY — no cfdata.org, Salesforce, internal pricing, or Cloudflare MCP data -->
+
 ## The Big Picture
 
 ${ENTRY_COUNT} entries this week. The common thread across all of them: the gap between moving fast and moving well is widening. AI is accelerating every layer of the stack — capital markets, product decisions, infrastructure spend, and how code gets written — and the teams and companies winning are the ones that built strong foundations before the tools arrived, not the ones sprinting hardest now.
