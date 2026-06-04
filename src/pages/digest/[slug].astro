@@ -1,0 +1,83 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('digest');
+  return entries.map(entry => ({
+    params: { slug: entry.id.replace(/\.mdx?$/, '') },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+
+const isWeekly = entry.data.type === 'weekly';
+const formattedDate = new Date(entry.data.date).toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+---
+
+<Base title={`${entry.data.title} — Stephen Mack`} description={entry.data.description}>
+    <a href="/digest" style="color: var(--text-dim); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.25rem; margin-bottom: 2rem;">&larr; All Digest Entries</a>
+
+    <article>
+        <header style="margin-bottom: 2.5rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border);">
+            <h1 style="font-size: 1.75rem; font-weight: 700; line-height: 1.3; margin-bottom: 1rem;">{entry.data.title}</h1>
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                <span style="font-size: 0.875rem; color: var(--text-dim);">{formattedDate}</span>
+                {isWeekly ? (
+                    <span style="display: inline-flex; align-items: center; padding: 0.125rem 0.625rem; border-radius: 1rem; font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; background: var(--amber-bg); color: var(--amber-text);">Weekly Roundup</span>
+                ) : (
+                    <span style="display: inline-flex; align-items: center; padding: 0.125rem 0.625rem; border-radius: 1rem; font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; background: var(--surface); border: 1px solid var(--border); color: var(--text-dim);">Daily</span>
+                )}
+            </div>
+        </header>
+
+        <div class="prose digest-prose">
+            <Content />
+        </div>
+    </article>
+</Base>
+
+<style is:global>
+    /* Digest-specific prose overrides */
+    .digest-prose h3 {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text);
+        margin: 2.5rem 0 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .digest-prose strong {
+        color: var(--accent);
+        font-weight: 600;
+    }
+
+    .digest-prose blockquote {
+        border-left: 3px solid var(--accent);
+        padding-left: 1.25rem;
+        margin: 1.25rem 0;
+        color: var(--text-muted);
+        font-style: normal;
+    }
+
+    .digest-prose hr {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 2rem 0;
+    }
+
+    /* Weekly roundup h2 sections */
+    .digest-prose h2 {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--accent);
+        margin: 2.5rem 0 1rem;
+    }
+</style>

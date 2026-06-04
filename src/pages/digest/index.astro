@@ -1,0 +1,76 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const entries = await getCollection('digest');
+
+const weekly = entries
+  .filter(e => e.data.type === 'weekly')
+  .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+
+const daily = entries
+  .filter(e => e.data.type === 'daily')
+  .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+---
+
+<Base title="Digest — Stephen Mack" description="Daily industry reading: AI, engineering, and business — with a Cloudflare lens. Plus weekly roundups synthesizing the best of each week.">
+    <a href="/" style="color: var(--text-dim); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.25rem; margin-bottom: 2rem;">&larr; Back to Home</a>
+
+    <section style="margin-bottom: 3rem;">
+        <h1 style="font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem;">Digest</h1>
+        <p style="color: var(--text-muted); font-size: 1rem; line-height: 1.7; max-width: 600px;">
+            Daily reading across AI, engineering, and business — with commentary and a Cloudflare lens where it applies. Weekly roundups synthesize the best of each week.
+        </p>
+    </section>
+
+    <!-- Weekly Roundups -->
+    {weekly.length > 0 && (
+        <section style="margin-bottom: 3rem;">
+            <h2 style="font-size: 0.8125rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1.25rem;">Weekly Roundups</h2>
+            <div style="display: flex; flex-direction: column; gap: 0.875rem;">
+                {weekly.map(entry => (
+                    <a href={`/digest/${entry.id.replace(/\.mdx?$/, '')}`} style="text-decoration: none;">
+                        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.5rem; transition: border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.625rem;">
+                                <div style="display: flex; align-items: center; gap: 0.625rem;">
+                                    <span style="display: inline-flex; align-items: center; padding: 0.125rem 0.625rem; border-radius: 1rem; font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; background: var(--amber-bg); color: var(--amber-text);">Weekly</span>
+                                    <h2 style="font-size: 1.0625rem; font-weight: 600; color: var(--text); line-height: 1.4;">{entry.data.title}</h2>
+                                </div>
+                                <span style="font-size: 0.75rem; color: var(--text-dim); white-space: nowrap; padding-top: 0.2rem;">{new Date(entry.data.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                            </div>
+                            <p style="color: var(--text-muted); font-size: 0.875rem; line-height: 1.6;">{entry.data.description}</p>
+                        </div>
+                    </a>
+                ))}
+            </div>
+        </section>
+    )}
+
+    <!-- Divider -->
+    {weekly.length > 0 && daily.length > 0 && (
+        <hr style="border: none; border-top: 1px solid var(--border); margin-bottom: 3rem;" />
+    )}
+
+    <!-- Daily Entries -->
+    {daily.length > 0 && (
+        <section>
+            <h2 style="font-size: 0.8125rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1.25rem;">Daily Entries</h2>
+            <div style="display: flex; flex-direction: column; gap: 0.875rem;">
+                {daily.map(entry => (
+                    <a href={`/digest/${entry.id.replace(/\.mdx?$/, '')}`} style="text-decoration: none;">
+                        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.5rem; transition: border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+                            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.625rem;">
+                                <div style="display: flex; align-items: center; gap: 0.625rem;">
+                                    <span style="display: inline-flex; align-items: center; padding: 0.125rem 0.625rem; border-radius: 1rem; font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; background: var(--surface); border: 1px solid var(--border); color: var(--text-dim);">Daily</span>
+                                    <h2 style="font-size: 1.0625rem; font-weight: 600; color: var(--text); line-height: 1.4;">{entry.data.title}</h2>
+                                </div>
+                                <span style="font-size: 0.75rem; color: var(--text-dim); white-space: nowrap; padding-top: 0.2rem;">{new Date(entry.data.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                            </div>
+                            <p style="color: var(--text-muted); font-size: 0.875rem; line-height: 1.6;">{entry.data.description}</p>
+                        </div>
+                    </a>
+                ))}
+            </div>
+        </section>
+    )}
+</Base>
