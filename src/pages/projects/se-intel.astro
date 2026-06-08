@@ -14,7 +14,6 @@ import Base from '../../layouts/Base.astro';
             A role-gated multi-agent revenue intelligence platform — pre-call research and sales coaching, grounded in a 102-chunk RAG knowledge base with streaming responses and cross-session memory.
         </p>
         <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
-            <a href="https://se-intel-portfolio.stephenmack96.workers.dev" target="_blank" class="btn btn-primary">View Live App &nearr;</a>
             <span class="badge badge-live">Live</span>
             <div style="display: flex; gap: 0.375rem; flex-wrap: wrap;">
                 <span class="tech-tag">Workers</span>
@@ -32,10 +31,10 @@ import Base from '../../layouts/Base.astro';
         <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">The Problem</h2>
         <div style="color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 0.75rem;">
             <p>
-                Sales teams at Cloudflare spend 30-60 minutes on manual pre-call research for every prospect. Objection handling is inconsistent — different reps give different answers to the same customer question. And the technical knowledge that lives in SE playbooks (POC patterns, integration complexity, competitive teardowns) never reaches AEs who need it in front of a customer.
+                Enterprise sales teams spend 30-60 minutes on manual pre-call research for every prospect. Objection handling is inconsistent — different reps give different answers to the same customer question. And the technical knowledge that lives in internal playbooks never reaches the people who need it in front of a customer.
             </p>
             <p>
-                The standard AI assistant approach — one model, one chat box, same answer for everyone — ignores the fact that an AE and a sales manager should be asking different questions and getting different depths of answer.
+                The standard AI assistant approach — one model, one chat box, same answer for everyone — ignores the fact that different roles should be asking different questions and getting different depths of answer.
             </p>
         </div>
     </section>
@@ -44,7 +43,7 @@ import Base from '../../layouts/Base.astro';
         <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">What I Built</h2>
         <div style="color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 0.75rem;">
             <p>
-                Two AI agents — <strong style="color: var(--text);">AccountIntelAgent</strong> and <strong style="color: var(--text);">EnablementAgent</strong> — each running as a Durable Object with its own embedded SQLite conversation history. Five roles (ae, se, csm, tam, sales_manager) with JWT-gated access to three knowledge base namespaces: <code>public</code> (80 Cloudflare product chunks), <code>se_only</code> (12 technical deep-dives), and <code>manager_only</code> (10 deal strategy and pricing chunks).
+                Two AI agents — <strong style="color: var(--text);">AccountIntelAgent</strong> and <strong style="color: var(--text);">EnablementAgent</strong> — each running as a Durable Object with its own embedded SQLite conversation history. Five roles (account_executive, solutions_engineer, csm, tam, manager) with JWT-gated access to three knowledge base namespaces: <code>public</code> (80 product chunks), <code>technical</code> (12 deep-dives), and <code>leadership</code> (10 deal strategy and pricing chunks).
             </p>
             <p>
                 Responses stream token-by-token via Server-Sent Events — tool badges appear before the first word, so the user sees what the agent retrieved before reading the answer. After every response, a lightweight LLM call extracts personal facts ("working on Stripe deal, 300 engineers") and stores them in KV — injected into the system prompt on every future conversation.
@@ -111,6 +110,7 @@ Cloudflare Worker (Hono router)
             </ul>
             <p style="margin-bottom: 1rem;">Defense in depth: if any one layer has a bug, the other two still enforce the constraint. Multiple namespaces are queried in parallel with <code>Promise.all</code>, results merged and sorted by score.</p>
 
+
             <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Streaming SSE</h3>
             <p style="margin-bottom: 1rem;"><code>AI.run(&#123; stream: true &#125;)</code> returns a <code>ReadableStream</code>. The DO's handler parses the Workers AI SSE format and re-emits three event types: <code>tools</code> (fires before first token, shows what was retrieved), <code>token</code> (one per token), <code>done</code> (latency + tools used). The Worker passes the DO's stream straight through to the browser with no buffering — TTFB under 100ms.</p>
 
@@ -118,7 +118,7 @@ Cloudflare Worker (Hono router)
             <p style="margin-bottom: 1rem;">After every response, a short LLM call extracts personal facts from the exchange ("prefers bullet points", "working on Stripe deal") and writes them to KV via <code>state.waitUntil()</code>. Without <code>waitUntil</code>, the DO isolate terminates before async work completes — a silent failure. On subsequent requests, <code>ltm.formatForPrompt()</code> injects the stored facts into the system prompt automatically.</p>
 
             <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Evaluation harness</h3>
-            <p>15 test cases across both agents and all roles. Notably: acc-001 and acc-006 ask the same question as SE vs AE — the judge's <code>role_appropriateness</code> dimension penalizes the SE for over-technical responses to an AE and vice versa. LLM-as-judge scores 4 dimensions (0-3 each), pass threshold 8/12, regression report diffs against previous run.</p>
+            <p>15 test cases across both agents and all roles. Notably: paired test cases ask the same question as two different roles — the judge's <code>role_appropriateness</code> dimension penalizes over-technical responses to non-technical roles and vice versa. LLM-as-judge scores 4 dimensions (0-3 each), pass threshold 8/12, regression report diffs against previous run.</p>
         </div>
     </details>
 
@@ -140,23 +140,18 @@ Cloudflare Worker (Hono router)
             <li>&#8226; <strong style="color: var(--text);">state.waitUntil() is not optional.</strong> Fire-and-forget async work inside a DO dies when the Response is returned. Without it, memory extraction silently produces zero results — no errors thrown.</li>
             <li>&#8226; <strong style="color: var(--text);">Workers AI returns objects, not strings.</strong> When the model responds with JSON, <code>result.response</code> is sometimes already a parsed object. Always check <code>typeof</code> before calling <code>JSON.parse()</code>.</li>
             <li>&#8226; <strong style="color: var(--text);">Defense in depth beats DRY for access control.</strong> Enforcing RBAC at three layers (type map, tool execution, Vectorize filter) means any single bug doesn't break security.</li>
-            <li>&#8226; <strong style="color: var(--text);">Paired eval cases are the most valuable.</strong> Running the same question as two different roles catches both over-permissive KB access and mis-calibrated system prompts in one test.</li>
+            <li>&#8226; <strong style="color: var(--text);">Paired eval cases are the most valuable.</strong> Running the same question as two different roles catches both over-permissive KB access and mis-calibrated system prompts in a single test.</li>
         </ul>
     </section>
 
     <section style="margin-bottom: 2.5rem;">
-        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Career Relevance</h2>
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Why I Built This</h2>
         <ul style="color: var(--text-muted); line-height: 1.7; list-style: none; display: flex; flex-direction: column; gap: 0.625rem;">
-            <li>&#8226; Directly answers Anthropic's screening question: "Have you built AI agents with tool use in a production context?" — two agents, three tools, role-gated, deployed and live.</li>
-            <li>&#8226; Demonstrates evaluation framework design — the gap Anthropic explicitly identifies between "built a demo" and "production-ready." LLM-as-judge, regression tracking, RBAC test cases.</li>
-            <li>&#8226; RAG with namespace filtering, streaming SSE, and cross-session memory are the patterns that separate a portfolio project from a demo. All three are live and testable at the URL above.</li>
+            <li>&#8226; I wanted to understand what it actually takes to go from a demo to a production-ready agent — two real agents, three tools, role-gated access, deployed and live.</li>
+            <li>&#8226; Evaluation was the part I cared most about. Building the LLM-as-judge harness with regression tracking and RBAC test cases taught me more about agent reliability than any tutorial.</li>
+            <li>&#8226; RAG with namespace filtering, streaming SSE, and cross-session memory are the patterns that separate a real system from a weekend project. I wanted all three working together in one codebase.</li>
         </ul>
     </section>
 
-    <section>
-        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Further Reading</h2>
-        <a href="/blog/se-intel-architecture" style="display: inline-flex; align-items: center; gap: 0.375rem; color: var(--blue); font-size: 0.9375rem;">
-            Read the full architecture write-up &rarr;
-        </a>
-    </section>
+
 </Base>
