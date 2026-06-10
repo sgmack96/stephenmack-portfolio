@@ -1,0 +1,993 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Study Guide — SE Intel" description="Technical study guide for SE Intel interview preparation.">
+
+<!-- PIN Gate -->
+<div id="pin-gate" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; gap: 1.5rem;">
+    <div style="font-size: 2.5rem;">🔒</div>
+    <h1 style="font-size: 1.5rem; font-weight: 700;">Study Guide</h1>
+    <p style="color: var(--text-muted); font-size: 0.9375rem;">Enter PIN to access</p>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <input
+            id="pin-input"
+            type="password"
+            inputmode="numeric"
+            maxlength="4"
+            placeholder="••••"
+            autocomplete="off"
+            style="background: var(--surface); border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.75rem 1.25rem; color: var(--text); font-size: 1.5rem; font-family: var(--mono); width: 8rem; text-align: center; letter-spacing: 0.5em; outline: none;"
+        />
+        <button
+            id="pin-submit"
+            class="btn btn-primary"
+            style="padding: 0.75rem 1.5rem; font-size: 1rem; cursor: pointer; border: none;"
+        >→</button>
+    </div>
+    <p id="pin-error" style="color: #ef4444; font-size: 0.8125rem; display: none;">Wrong PIN</p>
+</div>
+
+<!-- Study Content (hidden until PIN is correct) -->
+<div id="study-content" style="display: none;">
+    <a href="/" style="color: var(--text-dim); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.25rem; margin-bottom: 2rem;">&larr; Back to Home</a>
+
+    <header style="margin-bottom: 2rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <span style="font-size: 1.5rem;">📖</span>
+            <h1 style="font-size: 1.75rem; font-weight: 700;">SE Intel — Technical Study Guide</h1>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.9375rem; margin-bottom: 1rem;">
+            11 chapters. Every architectural decision explained through the code. Interview Q&A grounded in the actual implementation.
+        </p>
+        <p style="color: var(--text-dim); font-size: 0.8125rem;">
+            One chapter per day, 20-30 minutes each. By day 11 you'll have the entire system in your head.
+        </p>
+    </header>
+
+    <!-- Study Schedule -->
+    <section class="study-section" style="margin-bottom: 2.5rem;">
+        <h2 class="section-title">📅 12-Day Study Schedule</h2>
+        <div class="schedule-grid">
+            <div class="schedule-item"><span class="day">Day 1</span><a href="#ch1">Ch 1 — The Problem We Solved</a><span class="time">20 min</span></div>
+            <div class="schedule-item"><span class="day">Day 2</span><a href="#ch2">Ch 2 — Workers + Durable Objects</a><span class="time">30 min</span></div>
+            <div class="schedule-item"><span class="day">Day 3</span><a href="#ch3">Ch 3 — Auth System</a><span class="time">30 min</span></div>
+            <div class="schedule-item"><span class="day">Day 4</span><a href="#ch4">Ch 4 — Rate Limiter</a><span class="time">20 min</span></div>
+            <div class="schedule-item"><span class="day">Day 5</span><a href="#ch5">Ch 5 — RAG System</a><span class="time">30 min</span></div>
+            <div class="schedule-item"><span class="day">Day 6</span><a href="#ch6">Ch 6 — Memory System</a><span class="time">30 min</span></div>
+            <div class="schedule-item"><span class="day">Day 7</span><a href="#ch7">Ch 7 — Streaming</a><span class="time">30 min</span></div>
+            <div class="schedule-item"><span class="day">Day 8</span><a href="#ch8">Ch 8 — Eval Harness</a><span class="time">30 min</span></div>
+            <div class="schedule-item"><span class="day">Day 9</span><a href="#ch9">Ch 9 — MCP Server</a><span class="time">20 min</span></div>
+            <div class="schedule-item"><span class="day">Day 10</span><a href="#ch10">Ch 10 — Failure Modes</a><span class="time">30 min</span></div>
+            <div class="schedule-item"><span class="day">Day 11</span><a href="#ch11">Ch 11 — Behavioral Story</a><span class="time">20 min</span></div>
+            <div class="schedule-item"><span class="day">Day 12+</span><span>Review — re-read interview Qs, practice aloud</span><span class="time">20 min</span></div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- CHAPTER 1 -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="chapter" id="ch1">
+        <h2 class="chapter-title">Chapter 1 — The Problem We Solved</h2>
+
+        <div class="concept">
+            <h3>The Concept</h3>
+            <p>SE Intel is a <strong>multi-agent revenue intelligence platform</strong> for sales teams. Three AI agents, each specialized:</p>
+            <table class="info-table">
+                <tr><th>Agent</th><th>Job</th><th>Example Prompt</th></tr>
+                <tr><td>AccountIntelAgent</td><td>Pre-call research</td><td>"Research Stripe — tech stack and CF opportunity"</td></tr>
+                <tr><td>EnablementAgent</td><td>Sales coaching</td><td>"How does Workers compare to Lambda?"</td></tr>
+                <tr><td>TranscriptAgent</td><td>Post-call analysis</td><td>"Here's my call notes from the Notion meeting..."</td></tr>
+            </table>
+
+            <p>This is <strong>not a wrapper around an LLM API</strong>. It solves 5 hard problems:</p>
+
+            <div class="callout">
+                <p><strong>Problem 1: State Management</strong> — Two concurrent requests from the same user can produce a race condition on conversation history.</p>
+                <p><strong>Problem 2: Hallucination</strong> — A raw LLM will confidently invent pricing, product names, and competitive claims. In sales, that's a deal-killer.</p>
+                <p><strong>Problem 3: Access Control</strong> — An AE shouldn't see discount approval tiers. An SE shouldn't see deal strategy pricing. RBAC must be at the data layer.</p>
+                <p><strong>Problem 4: Cost</strong> — GPT-4o costs ~$10/M input tokens. Workers AI (Llama 3.3 70B) is included in the Workers paid plan.</p>
+                <p><strong>Problem 5: Streaming</strong> — Users expect token-by-token delivery. That needs SSE, ReadableStream, and lifecycle management for background work.</p>
+            </div>
+
+            <p><em>Every technical decision in chapters 2-9 traces back to one of these 5 problems.</em></p>
+        </div>
+
+        <div class="questions">
+            <h3>Self-Check Questions</h3>
+            <ol>
+                <li>What are the 3 agents in SE Intel and what does each do?</li>
+                <li>What is the race condition problem in a multi-user chat system?</li>
+                <li>Why is hallucination especially dangerous in a sales context?</li>
+                <li>Why does the system need RBAC at the data layer, not just the UI?</li>
+                <li>What are the 5 hard problems SE Intel solves?</li>
+            </ol>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- CHAPTER 2 -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="chapter" id="ch2">
+        <h2 class="chapter-title">Chapter 2 — The Runtime: Workers and Durable Objects</h2>
+
+        <div class="concept">
+            <h3>The Concept</h3>
+
+            <p><strong>What is a Cloudflare Worker?</strong> A V8 isolate — the same JS engine as Chrome. Not a container. Not a VM.</p>
+
+            <table class="info-table">
+                <tr><th>Property</th><th>Container (Lambda)</th><th>V8 Isolate (Workers)</th></tr>
+                <tr><td>Cold start</td><td>100ms-1s</td><td>~0ms</td></tr>
+                <tr><td>Memory</td><td>Dedicated (128MB-10GB)</td><td>Shared (~128MB per isolate)</td></tr>
+                <tr><td>Location</td><td>One region you choose</td><td>300+ edge locations globally</td></tr>
+                <tr><td>Pricing</td><td>Per-ms of compute</td><td>$0.15/million requests</td></tr>
+            </table>
+
+            <p><strong>What is a Durable Object?</strong> A JS class instance with three special properties:</p>
+            <ol>
+                <li><strong>Single-threaded execution</strong> — all requests to the same DO serialize. No two run concurrently.</li>
+                <li><strong>Embedded SQLite</strong> — each DO has its own SQLite (up to 10GB). No network hop.</li>
+                <li><strong>Hibernation</strong> — idle DOs sleep at $0. Wake in &lt;1ms. SQLite persists.</li>
+            </ol>
+        </div>
+
+        <div class="concept">
+            <h3>The Race Condition Problem</h3>
+            <pre><code>WITHOUT Durable Objects (shared database):
+═══════════════════════════════════════════
+
+Request A:  READ history [msg1, msg2]          WRITE [msg1, msg2, msg3-A]
+Request B:      READ history [msg1, msg2]          WRITE [msg1, msg2, msg3-B]
+                                                    ↑
+                                         msg3-A is LOST. B overwrote A.
+
+WITH Durable Objects (single-threaded):
+═══════════════════════════════════════
+
+Request A:  READ → WRITE → DONE
+Request B:  (queued) → READ → sees A's write → WRITE → DONE
+            ↑ No data lost. No locks needed.</code></pre>
+        </div>
+
+        <div class="code-block">
+            <h3>What We Built</h3>
+            <p class="code-label">One DO instance per user, per agent type:</p>
+            <pre><code>// idFromName("alice") ALWAYS returns the same DO for alice
+// idFromName("bob") returns a completely different, isolated DO
+const doId = env.ACCOUNT_AGENT.idFromName(userId)
+const stub = env.ACCOUNT_AGENT.get(doId)
+
+// Forward to Alice's personal DO — Bob's context never touched
+const response = await stub.fetch(
+  new Request("https://do-internal/chat", &#123;
+    method: "POST",
+    body: JSON.stringify(&#123; message, threadId, userContext &#125;)
+  &#125;)
+)</code></pre>
+            <span class="file-ref">📄 src/index.ts:174-188</span>
+        </div>
+
+        <div class="why-box">
+            <h3>Why We Built It This Way</h3>
+            <ul>
+                <li><strong>Why DOs instead of a shared DB?</strong> — No race conditions. Requests serialize automatically. SQLite is co-located — sub-ms reads.</li>
+                <li><strong>Why 2 DO classes instead of 1?</strong> — Context isolation. Account research context shouldn't bleed into product coaching context. Trade-off: separate DOs can't share state — that's why LTM is in KV (Chapter 6).</li>
+            </ul>
+        </div>
+
+        <div class="rejected">
+            <h3>What We Rejected</h3>
+            <table class="info-table">
+                <tr><th>Alternative</th><th>Why Rejected</th></tr>
+                <tr><td>Shared D1 database for history</td><td>Race conditions on concurrent writes. Would need row-level locking.</td></tr>
+                <tr><td>Redis/Upstash for session state</td><td>External network hop for every history read. DO SQLite is co-located and free.</td></tr>
+                <tr><td>One DO class for all agents</td><td>Conversation contexts would mix — account research threads and enablement threads share history.</td></tr>
+            </table>
+        </div>
+
+        <div class="questions">
+            <h3>Interview Questions</h3>
+            <details><summary>Q: What is a Durable Object and why did you use it?</summary>
+            <div><p>A Durable Object is a JavaScript class instance with guaranteed single-threaded execution and embedded SQLite storage. I used it because SE Intel needs per-user conversation history, and concurrent requests to a shared database create race conditions. With a DO, all requests for one user serialize automatically — no locks needed, no data loss. Each user gets their own DO instance with its own SQLite. When idle, it hibernates at $0.</p></div></details>
+            <details><summary>Q: What's the difference between a V8 isolate and a container?</summary>
+            <div><p>A container downloads an image, starts a runtime, and runs your code — that's the cold start (100ms-1s). A V8 isolate is a JavaScript execution context inside an already-running V8 engine. No image to download, no runtime to boot. Cold start is ~0ms. Trade-off: isolates share memory across tenants (~128MB per isolate), so you can't run heavy compute like ML training.</p></div></details>
+            <details><summary>Q: What happens to SQLite data when a DO hibernates?</summary>
+            <div><p>It persists. SQLite data is durably stored — hibernation only releases the compute. When the next request arrives, the DO wakes in &lt;1ms and SQLite is immediately available. Cost of a sleeping DO: $0.</p></div></details>
+            <details><summary>Q: Walk me through the request flow from HTTP to DO.</summary>
+            <div><p>HTTP POST arrives at the Worker (Hono router). Middleware extracts the JWT and builds a UserContext. Rate limit check hits KV. Then <code>env.ACCOUNT_AGENT.idFromName(userId)</code> gets a unique DO identifier — same userId always maps to the same DO. <code>.get(doId)</code> gets a stub (proxy). <code>stub.fetch()</code> forwards to that DO. Inside, <code>handleChat()</code> loads history from SQLite, dispatches tools, calls Workers AI, persists the new turns, and returns the response.</p></div></details>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- CHAPTER 3 -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="chapter" id="ch3">
+        <h2 class="chapter-title">Chapter 3 — The Auth System</h2>
+
+        <div class="concept">
+            <h3>The Concept</h3>
+            <p><strong>JWT anatomy</strong> — three parts separated by dots:</p>
+            <pre><code>eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbGljZSIsInJvbGUiOiJzZSJ9.K7gNU3sdo...
+
+Part 1: HEADER    → &#123;"alg": "HS256", "typ": "JWT"&#125;
+Part 2: PAYLOAD   → &#123;"sub": "alice", "role": "se", "exp": 1720000000&#125;
+Part 3: SIGNATURE → HMAC-SHA256(header + "." + payload, secret)
+
+Each part is base64url encoded — NOT encrypted.
+Anyone can decode Parts 1 and 2. The signature proves it hasn't been tampered with.</code></pre>
+
+            <p><strong>HS256 = HMAC-SHA256.</strong> Symmetric: same secret signs and verifies. If the secret leaks, anyone can forge tokens.</p>
+            <p><strong>No npm JWT library</strong> — Workers has <code>crypto.subtle</code> built in. JWT verification is ~40 lines with WebCrypto.</p>
+        </div>
+
+        <div class="code-block">
+            <h3>What We Built — JWT Verification with WebCrypto</h3>
+            <pre><code>async function verifyToken(token, secret) &#123;
+  const [headerB64, payloadB64, signatureB64] = token.split(".")
+
+  // Import secret as a crypto key — can ONLY verify, not sign
+  const key = await crypto.subtle.importKey(
+    "raw", encode(secret),
+    &#123; name: "HMAC", hash: "SHA-256" &#125;,
+    false,       // not extractable
+    ["verify"]   // least privilege
+  )
+
+  // Constant-time comparison — prevents timing attacks
+  const valid = await crypto.subtle.verify(
+    "HMAC", key,
+    decodeBase64Url(signatureB64),        // signature FROM the token
+    encode(`$&#123;headerB64&#125;.$&#123;payloadB64&#125;`)  // what we're checking against
+  )
+
+  if (!valid) return null // forged or tampered
+
+  const claims = JSON.parse(atob(payloadB64))
+  if (claims.exp < Math.floor(Date.now() / 1000)) return null // expired
+  return claims
+&#125;</code></pre>
+            <span class="file-ref">📄 src/auth/context.ts:51-90</span>
+        </div>
+
+        <div class="code-block">
+            <h3>Defense in Depth — Tool Re-checks Role</h3>
+            <pre><code>// In kb-search.ts — the tool checks role AGAIN even though
+// the router already verified the JWT.
+// Router identifies WHO. Tool enforces WHAT.
+
+const allowedNamespaces = ROLE_KB_ACCESS[role]
+// ae  → ["public"]
+// se  → ["public", "se_only"]
+// mgr → ["public", "se_only", "manager_only"]
+
+if (namespace && !allowedNamespaces.includes(namespace)) &#123;
+  return null  // silently deny
+&#125;</code></pre>
+            <span class="file-ref">📄 src/tools/kb-search.ts:54-62</span>
+        </div>
+
+        <div class="questions">
+            <h3>Interview Questions</h3>
+            <details><summary>Q: How does authentication work in your system?</summary>
+            <div><p>Two paths. In production, Cloudflare Access validates the JWT at the network edge — before my code runs. My Worker just parses the <code>cf-access-jwt-assertion</code> header. In the portfolio environment, I issue HS256 JWTs from <code>/dev/token</code> and verify with <code>crypto.subtle.verify()</code>. Both paths produce the same UserContext — userId, role, orgId, name — passed to the Durable Object.</p></div></details>
+            <details><summary>Q: What is defense in depth and how did you implement it?</summary>
+            <div><p>Multiple independent security layers. The router validates the JWT and determines identity. The tool layer independently re-checks the user's role before executing. If a bug passes the wrong role to a tool, the tool denies access. The router identifies WHO you are; the tool enforces WHAT you can do.</p></div></details>
+            <details><summary>Q: What happens if someone tampers with a JWT payload?</summary>
+            <div><p>The signature won't match. HMAC-SHA256 of the modified payload with the secret key will produce a different hash than what's in Part 3. <code>crypto.subtle.verify()</code> returns false, and the request is rejected with 401.</p></div></details>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- CHAPTER 4 -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="chapter" id="ch4">
+        <h2 class="chapter-title">Chapter 4 — The Rate Limiter</h2>
+
+        <div class="concept">
+            <h3>Three Rate Limiting Strategies</h3>
+            <table class="info-table">
+                <tr><th>Strategy</th><th>How It Works</th><th>Weakness</th></tr>
+                <tr><td>Fixed Window</td><td>Count per fixed bucket (every minute at :00)</td><td>"Reset gaming" — burst at boundary</td></tr>
+                <tr><td><strong>Sliding Window (ours)</strong></td><td>Each request's window is the 60s before it</td><td>Slight over-count with eventual consistency</td></tr>
+                <tr><td>Token Bucket</td><td>Bucket fills at steady rate, each request takes a token</td><td>More complex to implement</td></tr>
+            </table>
+            <pre><code>FIXED WINDOW — the reset gaming problem:
+  11:59:58  Alice sends 20 requests → hits limit
+  12:00:00  Counter resets to 0
+  12:00:02  Alice sends 20 more → succeeds
+  Result:   40 requests in 4 seconds!
+
+SLIDING WINDOW — no gaming:
+  11:59:58  Alice sends 20 → hits limit
+  12:00:02  System looks at last 60 seconds → still 20 → denied</code></pre>
+        </div>
+
+        <div class="code-block">
+            <h3>What We Built</h3>
+            <pre><code>const LIMITS = &#123; ae: 20, csm: 20, se: 30, tam: 30, sales_manager: 50 &#125;
+
+async function checkRateLimit(userId, role, env) &#123;
+  const limit = LIMITS[role]
+  const bucket = Math.floor(Date.now() / 60000)  // new bucket every minute
+  const key = `rl:$&#123;userId&#125;:$&#123;bucket&#125;`
+
+  const count = parseInt(await env.RATE_LIMIT_KV.get(key)) || 0
+  if (count >= limit) return &#123; allowed: false &#125;
+
+  // Increment + auto-expire in 2 minutes (free cleanup)
+  await env.RATE_LIMIT_KV.put(key, String(count + 1), &#123; expirationTtl: 120 &#125;)
+  return &#123; allowed: true, remaining: limit - (count + 1) &#125;
+&#125;</code></pre>
+            <span class="file-ref">📄 src/auth/ratelimit.ts:16-52</span>
+        </div>
+
+        <div class="callout" style="border-color: #ef4444;">
+            <h3>Known Weakness</h3>
+            <p>KV is <strong>eventually consistent</strong>. Two concurrent requests can both read <code>count=19</code> and both succeed → 21 requests instead of 20. For a sales tool this is acceptable. For billing-critical APIs, replace with a DO-based counter (guaranteed serial execution).</p>
+        </div>
+
+        <div class="questions">
+            <h3>Interview Questions</h3>
+            <details><summary>Q: What rate limiting strategy did you use and why?</summary>
+            <div><p>Sliding window using KV counters. Key: <code>rl:userId:bucket</code> where bucket is <code>Math.floor(Date.now() / 60000)</code>. Prevents reset gaming. Limits are role-based: AEs 20/min, SEs 30/min, managers 50/min.</p></div></details>
+            <details><summary>Q: What's the weakness in your rate limiter?</summary>
+            <div><p>KV is eventually consistent. Two concurrent requests can both read the same count and both succeed. Over-count by 1-2 requests during a burst. Acceptable for a guardrail. For exact enforcement: use a DO counter.</p></div></details>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- CHAPTER 5 -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="chapter" id="ch5">
+        <h2 class="chapter-title">Chapter 5 — The RAG System</h2>
+
+        <div class="concept">
+            <h3>What is RAG?</h3>
+            <p><strong>Retrieval-Augmented Generation</strong> — search a knowledge base for relevant content, then inject it into the LLM's context before it generates.</p>
+            <pre><code>Without RAG:
+  User: "What's Workers pricing?"
+  LLM:  "Workers costs $5/million" ← HALLUCINATED (real: $0.15)
+
+With RAG:
+  Step 1: Search KB for "Workers pricing"
+  Step 2: Retrieve: "$0.15/million requests, $12.50/million ms CPU"
+  Step 3: Inject into LLM context as a system message
+  Step 4: LLM reads the retrieved text and uses it
+  Result: "$0.15 per million requests" ← GROUNDED in real data</code></pre>
+        </div>
+
+        <div class="concept">
+            <h3>What are Embeddings?</h3>
+            <p>A numerical representation of meaning. Text → vector of 768 numbers:</p>
+            <pre><code>"Cloudflare Workers serverless"  → [0.12, -0.45, 0.78, ... 768 numbers]
+"AWS Lambda functions"           → [0.11, -0.42, 0.76, ... 768 numbers]  ← CLOSE
+"Italian pizza recipe"           → [0.89, 0.23, -0.67, ... 768 numbers]  ← FAR
+
+Cosine similarity measures the ANGLE between vectors (not distance).
+Ranges from -1 (opposite) to 1 (identical). Threshold: 0.5</code></pre>
+        </div>
+
+        <div class="code-block">
+            <h3>The RAG Pipeline — 5 Steps</h3>
+            <pre><code>async function kbSearch(query, role, env) &#123;
+  // STEP 1: Check permissions
+  const allowed = ROLE_KB_ACCESS[role]  // ae→["public"], se→["public","se_only"]
+
+  // STEP 2: Convert query to 768-dim embedding
+  const embedding = await env.AI.run("@cf/baai/bge-base-en-v1.5", &#123; text: [query] &#125;)
+  const vector = embedding.data[0]
+
+  // STEP 3: Search each allowed namespace in parallel
+  const results = await Promise.all(
+    allowed.map(ns => env.VECTORIZE.query(vector, &#123;
+      topK: 5,
+      filter: &#123; namespace: ns &#125;,  // RBAC enforced at the DB level
+      returnMetadata: "all"
+    &#125;))
+  )
+
+  // STEP 4: Filter by quality (cosine similarity >= 0.5)
+  const good = results.flat().filter(m => m.score >= 0.5).sort(byScore).slice(0, 5)
+
+  // STEP 5: Format for injection into the LLM context
+  return good.map(r => `[$&#123;r.metadata.productName&#125;] $&#123;r.metadata.content&#125;`).join("\n")
+&#125;</code></pre>
+            <span class="file-ref">📄 src/tools/kb-search.ts:44-139</span>
+        </div>
+
+        <div class="callout">
+            <h3>The Knowledge Base — 3 Namespaces, 102 Chunks</h3>
+            <p><strong>public</strong> (80 chunks) — product overviews, pricing, competitor comparisons → ALL roles</p>
+            <p><strong>se_only</strong> (12 chunks) — POC patterns, architecture guides, technical objections → SE, TAM, Manager</p>
+            <p><strong>manager_only</strong> (10 chunks) — discount tiers, deal strategy, champion building → Manager ONLY</p>
+            <p>All in <strong>one Vectorize index</strong>. Separated by metadata filter, not separate indexes.</p>
+        </div>
+
+        <div class="questions">
+            <h3>Interview Questions</h3>
+            <details><summary>Q: What is RAG and why did you use it?</summary>
+            <div><p>Retrieval-Augmented Generation. Instead of relying on training data (which hallucinates), I search a curated KB for relevant content, then inject it into the LLM's context. The LLM grounds its answer in real data. Critical for a sales tool — hallucinated pricing in a customer call is a deal-killer.</p></div></details>
+            <details><summary>Q: Walk me through the RAG pipeline.</summary>
+            <div><p>Five steps: (1) Check role permissions for namespace access. (2) Embed the query into a 768-dim vector using BGE-base-en-v1.5. (3) Query Vectorize in parallel across allowed namespaces, top-5 with metadata filter. (4) Filter by cosine similarity >= 0.5, take top 5. (5) Format and inject as a system message before the user's question.</p></div></details>
+            <details><summary>Q: What is cosine similarity and why use it?</summary>
+            <div><p>Measures the angle between vectors, not magnitude. Ranges -1 to 1. Text length doesn't matter — a short query and long document about the same topic have high similarity. Better than Euclidean distance for semantic search where lengths differ.</p></div></details>
+            <details><summary>Q: What happens if the KB returns nothing?</summary>
+            <div><p><code>kbSearch()</code> returns null. Agent falls back to web search (DuckDuckGo). If that also fails, LLM answers from training data but the system prompt instructs it to flag when not grounding in sources. Cascading fallback: KB → web → training data.</p></div></details>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- CHAPTER 6 -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="chapter" id="ch6">
+        <h2 class="chapter-title">Chapter 6 — The Two-Tier Memory System</h2>
+
+        <div class="concept">
+            <h3>The Architecture</h3>
+            <table class="info-table">
+                <tr><th></th><th>Short-Term Memory</th><th>Long-Term Memory</th></tr>
+                <tr><td><strong>Stores</strong></td><td>Conversation messages</td><td>Personal facts ("working on Stripe deal")</td></tr>
+                <tr><td><strong>Scope</strong></td><td>One thread, one agent</td><td>Shared across ALL agents and threads</td></tr>
+                <tr><td><strong>Storage</strong></td><td>DO SQLite</td><td>Workers KV</td></tr>
+                <tr><td><strong>Lifetime</strong></td><td>Last 20 turns, then trimmed</td><td>50 facts max, FIFO eviction</td></tr>
+                <tr><td><strong>Why?</strong></td><td>Needs serial access (no races)</td><td>Needs cross-agent access</td></tr>
+            </table>
+        </div>
+
+        <div class="concept">
+            <h3>The Cross-Agent Sharing Problem</h3>
+            <pre><code>AccountIntelAgent DO (Alice)
+  └── SQLite: Alice's research conversations
+  └── CAN'T read EnablementAgent's SQLite  ← the problem
+
+EnablementAgent DO (Alice)
+  └── SQLite: Alice's coaching conversations
+  └── CAN'T read AccountIntelAgent's SQLite
+
+Solution: Workers KV (accessible from everywhere)
+  └── ltm:alice:fact-001 → "Working on Stripe deal"
+  └── Both DOs can read and write ✓</code></pre>
+        </div>
+
+        <div class="code-block">
+            <h3>The <code>state.waitUntil()</code> Bug and Fix</h3>
+            <pre><code>// ❌ THE BUG — DO isolate gets recycled after returning the Response.
+// LTM extraction (a second LLM call) gets killed mid-flight.
+// No error thrown. Facts silently never saved.
+ltmWriter.extractAndRemember(message, response, env).catch(() => &#123;&#125;)
+
+// ✅ THE FIX — waitUntil() keeps the DO alive until the promise settles.
+this.state.waitUntil(
+  ltmWriter.extractAndRemember(message, response, env)
+    .catch(err => console.error("[ltm] extract error:", err))
+)</code></pre>
+            <span class="file-ref">📄 src/agents/base-agent.ts:160-185</span>
+        </div>
+
+        <div class="code-block">
+            <h3>Memory Extraction Prompt</h3>
+            <pre><code>// After every response, a background LLM call extracts personal facts
+// Temperature: 0.1 (consistent structured output)
+// Cap: 2 facts per turn, 50 per user, FIFO eviction
+
+const prompt = `Extract 0-2 short facts about the USER only.
+
+GOOD: "Working on Stripe deal, ~200 engineers"
+GOOD: "Has QBR with Notion on June 15"
+BAD:  "Asked about Workers vs Lambda" ← question, not a fact
+BAD:  "Cloudflare has zero cold starts" ← product info, not personal
+
+Return: &#123;"facts": ["fact 1"]&#125; or &#123;"facts": []&#125;`
+
+// Only 10 most recent facts injected into future prompts
+// → saves context window tokens on stale data</code></pre>
+            <span class="file-ref">📄 src/memory/long-term.ts:151-254</span>
+        </div>
+
+        <div class="questions">
+            <h3>Interview Questions</h3>
+            <details><summary>Q: Explain the two-tier memory system.</summary>
+            <div><p>Short-term: conversation history in DO SQLite — per-user, per-agent, last 20 turns. Long-term: personal facts in KV — per-user, shared across agents. The split exists because DO SQLite can't be shared across DO classes, but both agents need to see the same user facts.</p></div></details>
+            <details><summary>Q: What is <code>state.waitUntil()</code> and why is it critical?</summary>
+            <div><p>After a DO returns a Response, the runtime may recycle the isolate. Any in-flight async work gets killed silently. <code>waitUntil(promise)</code> tells the runtime: keep this alive until the promise settles. Without it, LTM extraction was silently failing — no error thrown, facts never saved.</p></div></details>
+            <details><summary>Q: Why KV for long-term memory instead of a database?</summary>
+            <div><p>Simple access pattern: read all facts, write individual facts. KV is globally distributed, sub-10ms reads, no schema to manage. D1/Postgres would add network hops and schema migrations for what's essentially a list of 50 strings per user. KV's eventual consistency is acceptable here.</p></div></details>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- CHAPTER 7 -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="chapter" id="ch7">
+        <h2 class="chapter-title">Chapter 7 — The Streaming Architecture</h2>
+
+        <div class="concept">
+            <h3>SSE vs WebSockets</h3>
+            <table class="info-table">
+                <tr><th></th><th>SSE (ours)</th><th>WebSockets</th></tr>
+                <tr><td>Direction</td><td>Server → client only</td><td>Bidirectional</td></tr>
+                <tr><td>Complexity</td><td>Just HTTP with special headers</td><td>Upgrade handshake, frame mgmt</td></tr>
+                <tr><td>Reconnect</td><td>Auto-reconnects</td><td>Manual</td></tr>
+                <tr><td>Best for</td><td>Token streaming, live feeds</td><td>Chat apps, multiplayer games</td></tr>
+            </table>
+            <p>We chose SSE because token streaming is <strong>one-directional</strong> — server pushes tokens to client.</p>
+        </div>
+
+        <div class="code-block">
+            <h3>The TransformStream Pattern</h3>
+            <pre><code>async handleStream(request) &#123;
+  // Dispatch tools BEFORE streaming — they feed the prompt
+  const toolResults = await this.dispatchTools(message, userContext)
+
+  // Create a pipe: write SSE events → readable end goes to client
+  const &#123; readable, writable &#125; = new TransformStream()
+  const writer = writable.getWriter()
+  const sse = (obj) => writer.write(encode("data: " + JSON.stringify(obj) + "\n\n"))
+
+  // Start streaming in background — NOT awaited
+  const streamWork = async () => &#123;
+    await sse(&#123; type: "tools", toolsUsed: ["kb_search"] &#125;)  // before first token
+
+    const aiStream = await env.AI.run(MODEL, &#123; messages, stream: true &#125;)
+    const reader = aiStream.getReader()
+
+    while (true) &#123;
+      const &#123; done, value &#125; = await reader.read()
+      if (done) break
+      // Parse Workers AI SSE → forward each token to client
+      const token = JSON.parse(line.slice(6)).response
+      await sse(&#123; type: "token", text: token &#125;)
+    &#125;
+
+    await sse(&#123; type: "done", latencyMs: Date.now() - start &#125;)
+    await writer.close()
+  &#125;
+
+  streamWork()  // fire and forget — don't await!
+
+  // Return readable end immediately — client starts receiving
+  return new Response(readable, &#123;
+    headers: &#123; "Content-Type": "text/event-stream", "X-Accel-Buffering": "no" &#125;
+  &#125;)
+&#125;</code></pre>
+            <span class="file-ref">📄 src/agents/base-agent.ts:208-376</span>
+        </div>
+
+        <div class="questions">
+            <h3>Interview Questions</h3>
+            <details><summary>Q: How does your streaming architecture work?</summary>
+            <div><p>SSE over HTTP. Tools dispatch first, then Workers AI with <code>stream: true</code> returns a ReadableStream. I create a TransformStream — write parsed SSE events to the writable end, return the readable end immediately (without awaiting). Three event types: <code>tools</code> (before first token), <code>token</code> (per word), <code>done</code> (metadata). TTFB under 100ms.</p></div></details>
+            <details><summary>Q: Why do tools run before the stream starts?</summary>
+            <div><p>Eager dispatch. Tools must complete before the LLM generates because their results feed the prompt. Adds ~500ms before first token, but no LLM → tool → LLM round-trips. Workers AI doesn't reliably support function calling during streaming anyway.</p></div></details>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- CHAPTER 8 -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="chapter" id="ch8">
+        <h2 class="chapter-title">Chapter 8 — The Evaluation Harness</h2>
+
+        <div class="concept">
+            <h3>Why LLM-as-Judge?</h3>
+            <p>You can't write <code>assert(output === expected)</code> for LLMs — there's no single correct answer. LLM-as-judge: a second LLM reads the response and scores it on specific dimensions.</p>
+        </div>
+
+        <div class="concept">
+            <h3>The Four Scoring Dimensions (0-3 each, 12 max, pass = 8)</h3>
+            <table class="info-table">
+                <tr><th>Dimension</th><th>Catches</th><th>Score 0</th><th>Score 3</th></tr>
+                <tr><td><strong>Groundedness</strong></td><td>Hallucination</td><td>Wrong pricing</td><td>Cites correct KB facts</td></tr>
+                <tr><td><strong>Relevance</strong></td><td>Wrong answer</td><td>Talks about CDN when asked about Workers</td><td>Directly addresses the question</td></tr>
+                <tr><td><strong>Role-appropriateness</strong></td><td>System prompt failure</td><td>CLI tutorial for an AE</td><td>Business framing for AE</td></tr>
+                <tr><td><strong>Actionability</strong></td><td>Unusable output</td><td>Academic essay</td><td>Usable in a sales call TODAY</td></tr>
+            </table>
+        </div>
+
+        <div class="callout">
+            <h3>Score Progression</h3>
+            <p><strong>67%</strong> → Groundedness failures. Added "CRITICAL RULE: use specific facts from KB."</p>
+            <p><strong>73%</strong> → Role-appropriateness failures. Added DEPTH RULES per role.</p>
+            <p><strong>87%</strong> → Two remaining edge cases documented. Acceptable for v1.</p>
+        </div>
+
+        <div class="callout" style="border-color: #ef4444;">
+            <h3>Self-Grading Bias (Known Weakness)</h3>
+            <p>Agent uses Llama 3.3 70B. Judge also uses Llama 3.3 70B. The judge is biased toward responses matching its own style → inflated scores. Fix: use Claude as judge via Anthropic API.</p>
+        </div>
+
+        <div class="questions">
+            <h3>Interview Questions</h3>
+            <details><summary>Q: How do you evaluate AI quality?</summary>
+            <div><p>LLM-as-judge. Python harness runs 15 test cases against the live API, then a second LLM scores each on 4 dimensions (0-3): groundedness, relevance, role-appropriateness, actionability. Pass: 8/12. Run after every prompt change. Progression: 67% → 73% → 87%.</p></div></details>
+            <details><summary>Q: What is self-grading bias?</summary>
+            <div><p>Using the same model as agent and judge. The judge is lenient toward responses matching its own style. Fix: different model as judge (Claude via Anthropic API).</p></div></details>
+            <details><summary>Q: How did you improve from 67% to 87%?</summary>
+            <div><p>Iteration-driven prompt engineering. At 67%: groundedness failures → added CRITICAL RULE requiring specific KB facts. At 73%: role-appropriateness failures → added role-specific DEPTH RULES. At 87%: two documented edge cases remaining.</p></div></details>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- CHAPTER 9 -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="chapter" id="ch9">
+        <h2 class="chapter-title">Chapter 9 — The MCP Server</h2>
+
+        <div class="concept">
+            <h3>What is MCP?</h3>
+            <p><strong>Model Context Protocol</strong> — an open standard from Anthropic for exposing tools to LLM clients (Claude Desktop, Cursor, Continue.dev).</p>
+            <pre><code>Claude Desktop → stdio (JSON-RPC) → MCP Server (Node.js)
+                                        → HTTPS → SE Intel Worker
+                                        → Durable Object agent
+                                        ← response back through the chain</code></pre>
+            <p>One server works with all MCP-compatible clients. No custom plugin per client.</p>
+        </div>
+
+        <div class="code-block">
+            <h3>Thin Bridge — All Intelligence Stays in the Worker</h3>
+            <pre><code>// The MCP server is ~300 lines. It does 3 things:
+// 1. Gets a JWT from the SE Intel Worker
+// 2. Forwards tool calls to the Worker API
+// 3. Returns the response in MCP format
+
+server.registerTool("research_account", &#123;
+  description: "Research a prospect company...",
+  inputSchema: &#123;
+    company: z.string(),
+    role: z.enum(["ae", "se", "csm", "tam", "sales_manager"]).default("se")
+  &#125;
+&#125;, async (&#123; company, role &#125;) => &#123;
+  const token = await getToken(role)  // cached per role
+  const resp = await fetch(`$&#123;BASE_URL&#125;/api/v1/account`, &#123;
+    headers: &#123; Authorization: `Bearer $&#123;token&#125;` &#125;,
+    body: JSON.stringify(&#123; message: company &#125;)
+  &#125;)
+  return &#123; content: [&#123; type: "text", text: (await resp.json()).response &#125;] &#125;
+&#125;)</code></pre>
+            <span class="file-ref">📄 projects/se-intel-mcp/src/index.ts:131-175</span>
+        </div>
+
+        <div class="questions">
+            <h3>Interview Questions</h3>
+            <details><summary>Q: What is MCP and why did you build an MCP server?</summary>
+            <div><p>Model Context Protocol — open standard from Anthropic for exposing tools to LLM clients. Built an MCP server so SE Intel is accessible from Claude Desktop, Cursor, etc. — not just the web UI. The server is a thin bridge: MCP protocol + token management. All intelligence stays in the Worker.</p></div></details>
+            <details><summary>Q: Why is the MCP server a "thin bridge"?</summary>
+            <div><p>Single source of truth. All RAG, RBAC, streaming, memory logic lives in the Worker. Update the Worker → MCP picks it up automatically with zero redeployment. Same Worker, three interfaces: web UI, REST API, MCP.</p></div></details>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- CHAPTER 10 -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="chapter" id="ch10">
+        <h2 class="chapter-title">Chapter 10 — Failure Modes and Trade-offs</h2>
+
+        <div class="concept">
+            <h3>Component Failure Map</h3>
+            <table class="info-table">
+                <tr><th>Component</th><th>Failure</th><th>What Happens</th><th>Fix</th></tr>
+                <tr><td>Vectorize</td><td>Down</td><td>kbSearch returns null → falls back to web search</td><td>Retry + circuit breaker</td></tr>
+                <tr><td>Workers AI</td><td>Timeout</td><td>Error SSE event sent</td><td>Client retry with same threadId</td></tr>
+                <tr><td>KV (rate limit)</td><td>Eventually consistent</td><td>21 requests instead of 20</td><td>Acceptable; or use DO counter</td></tr>
+                <tr><td>DO SQLite</td><td>DO evicted</td><td>Data persists — reloads on next request</td><td>Designed behavior</td></tr>
+                <tr><td>D1 (audit)</td><td>Write fails</td><td>Wrapped in .catch() — zero user impact</td><td>Fire-and-forget by design</td></tr>
+                <tr><td>LTM extraction</td><td>Invalid JSON</td><td>Silently ignored — future turns work</td><td>Best-effort by design</td></tr>
+            </table>
+        </div>
+
+        <div class="concept">
+            <h3>Trade-offs — When You'd Choose Differently</h3>
+            <table class="info-table">
+                <tr><th>Decision</th><th>Trade-off</th><th>When to Change</th></tr>
+                <tr><td>Eager tool dispatch</td><td>~500ms extra latency</td><td>If Workers AI supported function calling in streaming</td></tr>
+                <tr><td>Same model as judge</td><td>Self-grading bias</td><td>Use Claude as judge via Anthropic API</td></tr>
+                <tr><td>KV rate limiting</td><td>Eventual consistency</td><td>Billing-critical APIs → DO counter</td></tr>
+                <tr><td>One Vectorize index</td><td>Filter bug risk</td><td>Regulated data (PII) → separate indexes</td></tr>
+                <tr><td>HS256 JWT</td><td>Shared secret</td><td>Multi-service → RS256 (asymmetric)</td></tr>
+                <tr><td>20-turn limit</td><td>Older context lost</td><td>Summarize old turns instead of deleting</td></tr>
+            </table>
+        </div>
+
+        <div class="questions">
+            <h3>Interview Questions</h3>
+            <details><summary>Q: What happens if Vectorize goes down?</summary>
+            <div><p><code>kbSearch()</code> returns null. Agent falls back to web search, then training data. No single tool failure blocks the response — graceful degradation by design.</p></div></details>
+            <details><summary>Q: What's the biggest weakness?</summary>
+            <div><p>Self-grading bias in evals. Agent and judge both use Llama 3.3 70B. Scores are likely inflated. Fix: Claude as judge via Anthropic API.</p></div></details>
+            <details><summary>Q: What would you change if you rebuilt from scratch?</summary>
+            <div><p>Four things: (1) Different model as eval judge. (2) Add reranking after Vectorize retrieval. (3) Summarize old turns instead of deleting. (4) More aggressive LTM extraction for deal context.</p></div></details>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- CHAPTER 11 -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <section class="chapter" id="ch11">
+        <h2 class="chapter-title">Chapter 11 — The Behavioral Story</h2>
+
+        <div class="callout">
+            <h3>The 60-Second Pitch</h3>
+            <p><em>"I built a multi-agent intelligence platform for sales teams on Cloudflare's edge network. Three AI agents — account research, sales coaching, and transcript analysis — each running as a Durable Object with per-user conversation history and role-based access control. The system uses RAG with a curated knowledge base, streaming SSE for real-time token delivery, and a two-tier memory system that extracts personal facts from conversations and remembers them across sessions. I built an eval harness with LLM-as-judge scoring that improved pass rates from 67% to 87% across three prompt engineering iterations. Deployed live on Cloudflare Workers at zero infrastructure cost."</em></p>
+        </div>
+
+        <div class="concept">
+            <h3>The 5-Minute Deep Dive</h3>
+            <p><strong>Minute 1 — The problem:</strong> Sales reps waste 30-60 min per call doing manual research. They miss things. AI answers hallucinate.</p>
+            <p><strong>Minute 2 — The architecture:</strong> Three agents, each a Durable Object. Hono router with JWT auth + rate limiting. DO SQLite for history. Tools run before the LLM. SSE streaming.</p>
+            <p><strong>Minute 3 — The hard problem:</strong> Two-tier memory. Short-term in DO SQLite (serial access). Long-term in KV (cross-agent sharing). The <code>waitUntil()</code> bug where extraction was silently failing.</p>
+            <p><strong>Minute 4 — The eval story:</strong> Python eval harness. LLM-as-judge. 4 dimensions. 67% → 73% → 87%. Self-grading bias acknowledged.</p>
+            <p><strong>Minute 5 — What I'd change:</strong> Reranking. Claude as judge. Summarize old turns. More aggressive LTM extraction.</p>
+        </div>
+
+        <div class="concept">
+            <h3>Anthropic Screening Questions → Your Answers</h3>
+            <p><strong>"Have you built and deployed a production LLM-powered application?"</strong><br/>
+            → Yes. <code>se-intel-portfolio.stephenmack96.workers.dev</code>. 3 agents, real auth, rate limiting, audit trails. Not a demo.</p>
+
+            <p><strong>"Have you built AI agents with tool use capabilities?"</strong><br/>
+            → Yes. AccountIntelAgent dispatches 3 tools (news, KB search, web search) based on intent. RBAC enforced at tool execution time. Audit logged.</p>
+
+            <p><strong>"Describe experience with LLMs creating complex functionality."</strong><br/>
+            → Multi-agent system with streaming, cross-session memory (LLM extraction → KV), role-calibrated prompts, and an eval harness with score progression.</p>
+
+            <p><strong>"Do you have expertise coding in Python?"</strong><br/>
+            → Yes. Eval harness: runner.py, judge.py, report.py. httpx, dotenv, argparse. Calls Workers AI REST API directly.</p>
+        </div>
+    </section>
+
+</div>
+
+<style>
+    /* PIN input focus */
+    #pin-input:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
+    }
+
+    /* Chapter structure */
+    .chapter {
+        margin-bottom: 3.5rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--border);
+    }
+    .chapter-title {
+        font-size: 1.375rem;
+        font-weight: 700;
+        color: var(--accent);
+        margin-bottom: 1.5rem;
+    }
+    .section-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--accent);
+        margin-bottom: 1rem;
+    }
+
+    /* Content blocks */
+    .concept, .code-block, .why-box, .rejected {
+        margin-bottom: 1.5rem;
+    }
+    .concept h3, .code-block h3, .why-box h3, .rejected h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        color: var(--text);
+    }
+    .concept p, .why-box p, .rejected p {
+        color: var(--text-muted);
+        line-height: 1.7;
+        margin-bottom: 0.75rem;
+    }
+    .concept ol, .concept ul, .why-box ul {
+        color: var(--text-muted);
+        line-height: 1.7;
+        padding-left: 1.5rem;
+        margin-bottom: 0.75rem;
+    }
+    .concept li, .why-box li {
+        margin-bottom: 0.375rem;
+    }
+    .concept strong, .why-box strong {
+        color: var(--text);
+    }
+
+    /* Code blocks */
+    .code-block pre {
+        margin-bottom: 0.375rem;
+    }
+    .file-ref {
+        font-size: 0.75rem;
+        color: var(--text-dim);
+        font-family: var(--mono);
+    }
+    .code-label {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        margin-bottom: 0.5rem;
+    }
+
+    /* Callout */
+    .callout {
+        background: var(--surface);
+        border-left: 3px solid var(--accent);
+        border-radius: 0 0.5rem 0.5rem 0;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    .callout h3 {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        color: var(--accent);
+    }
+    .callout p {
+        color: var(--text-muted);
+        line-height: 1.7;
+        margin-bottom: 0.5rem;
+    }
+    .callout p:last-child { margin-bottom: 0; }
+    .callout strong { color: var(--text); }
+
+    /* Tables */
+    .info-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1rem;
+        font-size: 0.8125rem;
+    }
+    .info-table th, .info-table td {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border);
+        text-align: left;
+    }
+    .info-table th {
+        background: var(--surface);
+        color: var(--text);
+        font-weight: 600;
+    }
+    .info-table td {
+        color: var(--text-muted);
+    }
+    .info-table code {
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        background: var(--bg);
+        padding: 0.1rem 0.3rem;
+        border-radius: 0.25rem;
+    }
+
+    /* Interview Q&A */
+    .questions {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        margin-top: 1.5rem;
+    }
+    .questions h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--accent);
+        margin-bottom: 1rem;
+    }
+    .questions details {
+        margin: 0 0 0.75rem 0;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 0.5rem;
+    }
+    .questions summary {
+        font-size: 0.875rem;
+        padding: 0.75rem 1rem;
+        color: var(--text);
+        font-weight: 500;
+    }
+    .questions details > div {
+        padding: 0.75rem 1rem 1rem;
+    }
+    .questions details > div p {
+        color: var(--text-muted);
+        font-size: 0.8125rem;
+        line-height: 1.7;
+    }
+    .questions details > div code {
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        background: var(--surface);
+        padding: 0.1rem 0.3rem;
+        border-radius: 0.25rem;
+    }
+    .questions ol {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+        line-height: 1.7;
+        padding-left: 1.25rem;
+    }
+
+    /* Study schedule */
+    .schedule-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+    }
+    .schedule-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.5rem 0.75rem;
+        background: var(--surface);
+        border-radius: 0.375rem;
+        font-size: 0.8125rem;
+    }
+    .schedule-item .day {
+        color: var(--accent);
+        font-weight: 600;
+        min-width: 4rem;
+    }
+    .schedule-item a, .schedule-item span {
+        color: var(--text-muted);
+        flex: 1;
+    }
+    .schedule-item a {
+        color: var(--blue);
+    }
+    .schedule-item .time {
+        color: var(--text-dim);
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        text-align: right;
+        min-width: 3.5rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+        .info-table { font-size: 0.75rem; }
+        .info-table th, .info-table td { padding: 0.375rem 0.5rem; }
+        .schedule-item { flex-wrap: wrap; gap: 0.25rem; }
+    }
+</style>
+
+<script is:inline>
+    // Client-side PIN protection
+    const CORRECT_PIN = '2439';
+    const STORAGE_KEY = 'study-guide-auth';
+
+    function checkAuth() {
+        const stored = sessionStorage.getItem(STORAGE_KEY);
+        if (stored === 'true') {
+            showContent();
+        }
+    }
+
+    function showContent() {
+        document.getElementById('pin-gate').style.display = 'none';
+        document.getElementById('study-content').style.display = 'block';
+    }
+
+    function handleSubmit() {
+        const input = document.getElementById('pin-input');
+        const error = document.getElementById('pin-error');
+        if (input && input.value === CORRECT_PIN) {
+            sessionStorage.setItem(STORAGE_KEY, 'true');
+            showContent();
+        } else {
+            if (error) error.style.display = 'block';
+            if (input) { input.value = ''; input.focus(); }
+            setTimeout(() => { if (error) error.style.display = 'none'; }, 2000);
+        }
+    }
+
+    document.getElementById('pin-submit')?.addEventListener('click', handleSubmit);
+    document.getElementById('pin-input')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleSubmit();
+    });
+
+    // Auto-focus the PIN input
+    document.getElementById('pin-input')?.focus();
+
+    // Check if already authenticated this session
+    checkAuth();
+</script>
+
+</Base>
