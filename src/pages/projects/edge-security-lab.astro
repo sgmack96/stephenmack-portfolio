@@ -1,0 +1,166 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+
+<Base title="Edge Security Lab — Stephen Mack" description="Two live Workers demos for customer calls: Turnstile fraud detection with Ephemeral IDs, and a security-through-obscurity honeypot that serves fake data to bots instead of blocking them.">
+    <a href="/" style="color: var(--text-dim); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.25rem; margin-bottom: 2rem;">&larr; Back to Home</a>
+
+    <header style="margin-bottom: 3rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <span style="font-size: 1.5rem;">🛡️</span>
+            <h1 style="font-size: 1.75rem; font-weight: 700;">Edge Security Lab</h1>
+        </div>
+        <p style="color: var(--text-muted); font-size: 1.0625rem; margin-bottom: 1.25rem;">
+            Two live Workers demos built for a fintech customer call: Turnstile Ephemeral IDs for fraud detection in mobile WebViews, and a three-tier security deception system that serves fake data to bots instead of blocking them. Both run on Cloudflare Workers and demonstrate application security patterns relevant to banking.
+        </p>
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+            <a href="https://turnstile-demo.macksportreport.com" target="_blank" class="btn btn-primary">Turnstile Demo &nearr;</a>
+            <a href="https://honeypot-demo.macksportreport.com" target="_blank" class="btn btn-secondary">Honeypot Demo &nearr;</a>
+            <span class="badge badge-live">Live</span>
+            <div style="display: flex; gap: 0.375rem; flex-wrap: wrap;">
+                <span class="tech-tag">Workers</span>
+                <span class="tech-tag">Turnstile</span>
+                <span class="tech-tag">KV</span>
+                <span class="tech-tag">TypeScript</span>
+            </div>
+        </div>
+    </header>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">The Problem</h2>
+        <div style="color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 0.75rem;">
+            <p>
+                A fintech customer serving hundreds of credit unions needed help with two security challenges: fraudulent account creation through their mobile banking app, and API scraping by automated tools. Their security team wanted to see practical implementations, not slide decks.
+            </p>
+            <p>
+                For fraud, the challenge is that attackers rotate through residential proxy pools — hundreds of unique IPs creating accounts. Traditional rate-limiting-by-IP is useless. They needed a way to fingerprint the underlying device without cookies or localStorage.
+            </p>
+            <p>
+                For API security, the conventional approach — returning 403 to detected bots — tells the attacker exactly when they've been caught. The customer wanted a "security through obscurity" approach: keep attackers guessing by serving plausible fake data instead of blocking them.
+            </p>
+        </div>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">What I Built</h2>
+        <div style="color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 0.75rem;">
+            <p>
+                <strong style="color: var(--text);">Demo 1: Turnstile + Ephemeral IDs.</strong> A credit union member signup form protected by Cloudflare Turnstile in invisible mode. On submission, the Worker calls Cloudflare's siteverify API and displays the full response — including the Ephemeral ID, a short-lived device fingerprint derived from browser signals without cookies. A companion fraud dashboard shows how multiple signups from the same device cluster under one Ephemeral ID, even across different IPs. After 4+ signups, the dashboard flags the device as suspicious.
+            </p>
+            <p>
+                <strong style="color: var(--text);">Demo 2: Security Through Obscurity.</strong> A simulated banking API with three response tiers: real data for humans, poisoned data for suspected bots (real structure, corrupted values), and completely fabricated data for confirmed bots — all returning HTTP 200. The demo includes honeypot trap endpoints (/.env, /admin/members.json) that serve convincing fake credentials and member records, plus a tarpit that slow-drips JSON over 30 seconds to waste bot connections. An interactive dashboard lets you hit the same endpoint as a human, a suspected bot, or a confirmed bot and compare the responses side-by-side.
+            </p>
+        </div>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Architecture</h2>
+<pre>{`Demo 1: Turnstile Fraud Detection
+──────────────────────────────────
+Browser (WebView)
+  └── Signup form with Turnstile widget (invisible)
+        │ cf-turnstile-response token
+        ▼
+Worker (turnstile-demo.macksportreport.com)
+  ├── POST /api/signup
+  │     ├── Calls challenges.cloudflare.com/turnstile/v0/siteverify
+  │     ├── Extracts Ephemeral ID from metadata
+  │     ├── Logs event to in-memory fraud store
+  │     ├── Velocity check: >3 signups/hour from same device?
+  │     └── Returns full siteverify response + fraud analysis
+  │
+  └── GET /dashboard
+        └── Aggregates events by Ephemeral ID
+              └── Flags devices with >3 signups as SUSPICIOUS
+
+Demo 2: Security Deception
+──────────────────────────
+Incoming Request
+  │
+  ▼
+Worker (honeypot-demo.macksportreport.com)
+  ├── Is path a honeypot? (/.env, /admin/*)
+  │     └── YES → Log trap hit → Serve fake credentials (200)
+  │
+  ├── Bot detection (ASN, UA, TLS fingerprint, Accept-Language)
+  │     ├── Score = DEFINITE BOT → Completely fake JSON (200)
+  │     ├── Score = SUSPICIOUS  → Poisoned real data (200)
+  │     └── Score = HUMAN       → Real data (200)
+  │
+  └── /api/tarpit → Streaming slow-drip (2s per record, 30s total)
+        └── Ties up bot connection pool`}</pre>
+    </section>
+
+    <details>
+        <summary>Technical Deep Dive</summary>
+        <div style="color: var(--text-muted); line-height: 1.7;">
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">Ephemeral IDs — Device Fingerprinting Without Cookies</h3>
+            <p style="margin-bottom: 1rem;">
+                Turnstile's Ephemeral IDs are short-lived device identifiers derived server-side from aggregated browser signals. No cookies, no localStorage, no sessionStorage. The ID appears only in the siteverify API response — the browser never sees it. This makes it invisible to attackers and impossible to spoof. The catch: privacy-focused devices (iPhones, Safari) yield fewer signals, so multiple legitimate users may share the same ID. Fraud detection must use threshold-based logic (3+ signups per ID per hour), not uniqueness.
+            </p>
+
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">Three-Tier Response System</h3>
+            <p style="margin-bottom: 1rem;">
+                The honeypot Worker never returns 403 — that reveals detection. Instead, it serves three tiers of HTTP 200 responses. Humans get real data. Suspected bots get "poisoned" data — the same schema and field names, but emails have random suffixes, balances are randomized, and routing numbers are fabricated. Confirmed bots get entirely fabricated records with realistic names, fake SSNs, and plausible transaction histories. A sophisticated attacker would need a legitimate account to cross-reference, and even then, poisoned data is indistinguishable from normal API caching behavior.
+            </p>
+
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">Heuristic Bot Detection (No Enterprise Required)</h3>
+            <p style="margin-bottom: 1rem;">
+                The Worker uses signals available on all plans via <code>request.cf</code>: ASN (cloud provider VPS = bot farm), User-Agent (python-requests, curl, scrapy), TLS version (old TLS = raw libraries), TLS Client Hello length (real Chrome: ~512 bytes, raw libs: ~150 bytes), and Accept-Language (browsers always send it, bots usually don't). With Enterprise Bot Management, you'd add ML-based scoring (1-99) and JA3/JA4 TLS fingerprinting.
+            </p>
+
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">Tarpit Pattern</h3>
+            <p style="margin-bottom: 1rem;">
+                The tarpit uses Workers' streaming response support (<code>TransformStream</code>) to hold a connection open for ~30 seconds, dripping one JSON record every 2 seconds. This isn't about wasting bandwidth — it's about wasting the attacker's connection pool. A bot running 100 concurrent connections has all 100 tied up for 30 seconds each, reducing effective throughput by 30x. The tarpit uses wall-clock time (setTimeout), not CPU time, so it stays within Workers' CPU limits.
+            </p>
+        </div>
+    </details>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Live Endpoints</h2>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; color: var(--text-muted); line-height: 1.6;">
+            <p><strong style="color: var(--text);">Turnstile Demo</strong></p>
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.875rem; font-family: monospace;">
+                <li><a href="https://turnstile-demo.macksportreport.com" target="_blank" style="color: var(--blue);">turnstile-demo.macksportreport.com</a> — Signup form</li>
+                <li><a href="https://turnstile-demo.macksportreport.com/dashboard" target="_blank" style="color: var(--blue);">turnstile-demo.macksportreport.com/dashboard</a> — Fraud dashboard</li>
+            </ul>
+            <p style="margin-top: 0.5rem;"><strong style="color: var(--text);">Honeypot Demo</strong></p>
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.875rem; font-family: monospace;">
+                <li><a href="https://honeypot-demo.macksportreport.com" target="_blank" style="color: var(--blue);">honeypot-demo.macksportreport.com</a> — Interactive dashboard</li>
+                <li><a href="https://honeypot-demo.macksportreport.com/admin/members.json" target="_blank" style="color: var(--blue);">honeypot-demo.macksportreport.com/admin/members.json</a> — Honeypot trap</li>
+            </ul>
+        </div>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Cloudflare Products Used</h2>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; color: var(--text-muted); line-height: 1.6;">
+            <p><strong style="color: var(--text);">Workers</strong> — Both demos run entirely on Workers. The Turnstile demo handles form submission, calls siteverify, logs fraud events, and serves the dashboard. The honeypot demo implements bot detection, three-tier response generation, canary endpoints, and streaming tarpits — all in a single Worker.</p>
+            <p><strong style="color: var(--text);">Turnstile</strong> — Invisible challenge widget on the signup form. Test keys simulate the flow; Enterprise keys would enable real Ephemeral IDs. The siteverify API returns the device fingerprint, challenge timestamp, action label, and hostname for server-side validation.</p>
+            <p><strong style="color: var(--text);">KV</strong> — Stores honeypot trap events with 30-day TTL. In production, this would power a blocklist: any IP hitting a canary endpoint gets its traffic permanently routed to fake data.</p>
+            <p><strong style="color: var(--text);">Custom Domains</strong> — Both Workers are deployed to subdomains of macksportreport.com using Workers Custom Domains, giving them clean demo URLs and automatic SSL.</p>
+        </div>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">What I Learned</h2>
+        <ul style="color: var(--text-muted); line-height: 1.7; list-style: none; display: flex; flex-direction: column; gap: 0.625rem;">
+            <li>&#8226; <strong style="color: var(--text);">Never return 403 to a detected bot.</strong> A 403 tells the attacker "I caught you." A 200 with fake data tells them nothing — they think they succeeded while their scraped database fills with garbage.</li>
+            <li>&#8226; <strong style="color: var(--text);">Ephemeral IDs are a similarity signal, not a unique identifier.</strong> Multiple legitimate users on iPhones may share the same ID. Design fraud detection around thresholds (3+ signups per ID per hour), not uniqueness.</li>
+            <li>&#8226; <strong style="color: var(--text);">WebView integration is fragile.</strong> DOM storage must be enabled, User-Agent must stay consistent, cookies must persist, and the page must be served over HTTP/HTTPS (not file://). Missing any one causes silent failure.</li>
+            <li>&#8226; <strong style="color: var(--text);">Canary endpoints have zero false-positive risk.</strong> No legitimate user ever requests /.env or /admin/members.json. Any client hitting these paths is definitively a scanner — no ML scoring needed.</li>
+            <li>&#8226; <strong style="color: var(--text);">Poisoned data is sneakier than fake data.</strong> Real schema structure with corrupted values (wrong emails, randomized balances) is harder for attackers to detect than entirely fabricated records.</li>
+            <li>&#8226; <strong style="color: var(--text);">Cloudflare's own WAF catches dotfile access.</strong> When deploying the honeypot behind Cloudflare's proxy, the managed WAF blocked requests to /.env before the Worker could serve fake credentials. Defense in depth — the WAF handles the obvious attacks, the Worker handles the sophisticated ones.</li>
+        </ul>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Why I Built This</h2>
+        <ul style="color: var(--text-muted); line-height: 1.7; list-style: none; display: flex; flex-direction: column; gap: 0.625rem;">
+            <li>&#8226; Customer calls land better with live demos than slides. A security VP watching fake SSNs stream out of a honeypot endpoint understands the value immediately — no architecture diagrams needed.</li>
+            <li>&#8226; Building the demos forced me to hit every edge case before the customer did: WebView gotchas, token expiration in long forms, tarpit CPU limits, and the WAF catching honeypot paths.</li>
+            <li>&#8226; Both patterns are reusable. The Turnstile demo works for any customer evaluating fraud detection, and the honeypot demo works for any customer with API scraping concerns. The code is portable — just change the fake data shapes to match the customer's domain.</li>
+        </ul>
+    </section>
+
+</Base>
