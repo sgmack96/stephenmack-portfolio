@@ -1,0 +1,113 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+
+<Base title="Zero Trust Demo Lab — Stephen Mack" description="BYOD device enrolled in Cloudflare WARP, Gateway policies enforcing identity-aware web filtering, and Access protecting a live Workers app — end-to-end Zero Trust without a VPN.">
+    <a href="/" style="color: var(--text-dim); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.25rem; margin-bottom: 2rem;">&larr; Back to Home</a>
+
+    <header style="margin-bottom: 3rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <span style="font-size: 1.5rem;">🔒</span>
+            <h1 style="font-size: 1.75rem; font-weight: 700;">Zero Trust Demo Lab</h1>
+        </div>
+        <p style="color: var(--text-muted); font-size: 1.0625rem; margin-bottom: 1.25rem;">
+            A hands-on demo environment for Cloudflare Zero Trust — a clean BYOD device enrolled via WARP, Gateway enforcing identity-aware SWG policies, and Cloudflare Access protecting a live Workers application. No VPN. No firewall exceptions.
+        </p>
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+            <span class="badge badge-live">Live</span>
+            <div style="display: flex; gap: 0.375rem; flex-wrap: wrap;">
+                <span class="tech-tag">WARP</span>
+                <span class="tech-tag">Gateway</span>
+                <span class="tech-tag">Access</span>
+                <span class="tech-tag">GCP</span>
+                <span class="tech-tag">Workers</span>
+            </div>
+        </div>
+    </header>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">The Problem</h2>
+        <div style="color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 0.75rem;">
+            <p>
+                Demoing Zero Trust to customers requires showing the full onboarding flow — a fresh, unmanaged device enrolling via WARP for the first time. Corporate laptops already have managed WARP enrolled through MDM. You can't re-enroll or alter the configuration without affecting your actual work setup.
+            </p>
+            <p>
+                The standard workaround — screensharing a pre-configured environment or walking through static screenshots — doesn't land the same way as a live demo. Customers want to see real policy enforcement, real traffic flowing through Gateway, and real Access auth happening in a browser they're watching.
+            </p>
+        </div>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">What I Built</h2>
+        <div style="color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 0.75rem;">
+            <p>
+                A GCP e2-small VM running Ubuntu 22.04, treated as a clean BYOD device. The WARP client is installed and enrolled into a personal Cloudflare Zero Trust organization — replicating exactly what an employee on a personal laptop would experience.
+            </p>
+            <p>
+                Gateway DNS and HTTP policies are configured to enforce identity-aware filtering: category-based DNS blocks, HTTP inspection with user identity tied to the enrolled device, and real-time traffic visible in the Activity Log. Cloudflare Access protects a live Workers application — unauthenticated requests are intercepted, the user authenticates via Cloudflare's identity provider, and access is granted based on policy.
+            </p>
+            <p>
+                The full demo runs as a single connected story: a BYOD device enrolls, all traffic is inspected by SWG, and when the user needs to reach an internal application, Access handles auth with no VPN and no firewall rule changes required.
+            </p>
+        </div>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Architecture</h2>
+<pre>{`GCP VM (Ubuntu 22.04, e2-small)
+  └── WARP client enrolled → Cloudflare Zero Trust org
+        │
+        ▼
+Cloudflare Edge
+  ├── Gateway — DNS Policy
+  │     └── Category blocks (e.g. Games, Social Media)
+  │           → NXDOMAIN returned, block page shown
+  │
+  ├── Gateway — HTTP Policy
+  │     └── Identity-aware rules tied to enrolled device
+  │           → User email visible in Activity Log
+  │
+  └── Access — Self-hosted Application
+        └── Workers app (se-intel.macksportreport.com)
+              ├── Unauthenticated request intercepted
+              ├── Redirect → Cloudflare login
+              ├── Identity verified → policy evaluated
+              └── Granted → app loads in browser`}</pre>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Demo Flow</h2>
+        <div style="color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 0.75rem;">
+            <p>
+                The demo runs as a single narrative across four products — no context switching between dashboards mid-call:
+            </p>
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.625rem;">
+                <li>&#8226; <strong style="color: var(--text);">Enrollment</strong> — WARP connects on the VM. The device appears instantly in Zero Trust → My Team → Devices. No MDM, no IT ticket, no waiting.</li>
+                <li>&#8226; <strong style="color: var(--text);">SWG in action</strong> — Browse to a blocked category. DNS policy returns NXDOMAIN, Gateway block page loads. Switch to the Activity Log — the request is there with the user's identity attached.</li>
+                <li>&#8226; <strong style="color: var(--text);">Identity-aware HTTP</strong> — Every outbound request shows the enrolled user's email in Gateway HTTP logs. Policy can be written against identity, not just IP.</li>
+                <li>&#8226; <strong style="color: var(--text);">ZTNA</strong> — Navigate to the protected Workers app. Access intercepts, prompts for login, grants access. No VPN tunnel, no firewall change — the app is never exposed to the public internet.</li>
+            </ul>
+        </div>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Cloudflare Products Used</h2>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; color: var(--text-muted); line-height: 1.6;">
+            <p><strong style="color: var(--text);">WARP Client</strong> — Enrolls the GCP VM into the Zero Trust organization. All device traffic is tunneled through Cloudflare's edge — DNS and HTTP both inspected by Gateway.</p>
+            <p><strong style="color: var(--text);">Gateway (DNS)</strong> — Category-based DNS policies block entire content categories. Requests to blocked domains return NXDOMAIN and surface a customizable block page.</p>
+            <p><strong style="color: var(--text);">Gateway (HTTP)</strong> — Identity-aware HTTP inspection. Every proxied request carries the enrolled user's identity — policies can be written against email, group membership, device posture, and more.</p>
+            <p><strong style="color: var(--text);">Cloudflare Access</strong> — Self-hosted application protecting a Workers app. Unauthenticated requests are intercepted at the edge, never reaching the origin. Auth is handled entirely by Cloudflare — no SDK changes required in the application.</p>
+            <p><strong style="color: var(--text);">Workers</strong> — The protected application itself, deployed to Cloudflare's edge. Placed behind Access without any code changes — Access operates at the network layer.</p>
+        </div>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Why I Built This</h2>
+        <ul style="color: var(--text-muted); line-height: 1.7; list-style: none; display: flex; flex-direction: column; gap: 0.625rem;">
+            <li>&#8226; Live demos convert better than slides. Customers selling Zero Trust to their own boards need to see the product actually work — not a screenshot of a dashboard.</li>
+            <li>&#8226; The BYOD story is the most common entry point for Zero Trust conversations with startups. Showing enrollment, SWG, and ZTNA as a single connected flow — on one device — makes the value proposition immediately clear.</li>
+            <li>&#8226; Building the lab forced me to understand the product deeply. Every policy edge case, every enrollment quirk, every Access redirect — I hit them all before the customer did.</li>
+        </ul>
+    </section>
+
+</Base>
