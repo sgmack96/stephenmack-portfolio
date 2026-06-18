@@ -96,22 +96,34 @@ Worker (honeypot-demo.macksportreport.com)
         <div style="color: var(--text-muted); line-height: 1.7;">
             <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">Ephemeral IDs — Device Fingerprinting Without Cookies</h3>
             <p style="margin-bottom: 1rem;">
-                Turnstile's Ephemeral IDs are short-lived device identifiers derived server-side from aggregated browser signals. No cookies, no localStorage, no sessionStorage. The ID appears only in the siteverify API response — the browser never sees it. This makes it invisible to attackers and impossible to spoof. The catch: privacy-focused devices (iPhones, Safari) yield fewer signals, so multiple legitimate users may share the same ID. Fraud detection must use threshold-based logic (3+ signups per ID per hour), not uniqueness.
+                Turnstile's Ephemeral IDs are short-lived device identifiers derived server-side from aggregated browser signals — proof-of-work completion speed, JS engine behavior, Web API surface (which APIs exist), canvas/WebGL rendering, navigator properties, and behavioral timing. No cookies, no localStorage, no sessionStorage. The ID appears only in the siteverify API response — the browser never sees it. This makes it invisible to attackers and impossible to spoof. The catch: privacy-focused devices (iPhones, Safari) limit observable signals, so multiple legitimate users may share the same ID. Fraud detection must use threshold-based velocity logic, not uniqueness.
             </p>
 
-            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">Three-Tier Response System</h3>
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">Five-Signal Fraud Scoring Engine</h3>
             <p style="margin-bottom: 1rem;">
-                The honeypot Worker never returns 403 — that reveals detection. Instead, it serves three tiers of HTTP 200 responses. Humans get real data. Suspected bots get "poisoned" data — the same schema and field names, but emails have random suffixes, balances are randomized, and routing numbers are fabricated. Confirmed bots get entirely fabricated records with realistic names, fake SSNs, and plausible transaction histories. A sophisticated attacker would need a legitimate account to cross-reference, and even then, poisoned data is indistinguishable from normal API caching behavior.
+                Each request is scored across five signal layers, each contributing 0–3 points (max 15). The response tier is determined by the combined score — not any single signal. This is intentional: an attacker can defeat any one signal at scale, but defeating all five simultaneously becomes economically impossible.
+            </p>
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; font-size: 0.875rem;">
+                <li>&#8226; <strong style="color: var(--text);">Ephemeral ID velocity</strong> — how many times has this device acted in the last hour? 1 = clean, 7+ = automated.</li>
+                <li>&#8226; <strong style="color: var(--text);">Bot Management score</strong> — Cloudflare's ML model (1–99) based on mouse movement, click timing, JS engine behavior, headless browser detection. Computed before the Worker runs.</li>
+                <li>&#8226; <strong style="color: var(--text);">TLS fingerprint (JA4)</strong> — what software is actually making this request? python-requests claiming to be Chrome 126 is caught by the JA4 mismatch.</li>
+                <li>&#8226; <strong style="color: var(--text);">Request signals</strong> — ASN (DigitalOcean = bot farm), geo mismatch (Nigeria + Michigan credit union), missing Accept-Language header.</li>
+                <li>&#8226; <strong style="color: var(--text);">Application signals</strong> — form completed in 0.4 seconds, disposable email domain. Business logic only Bankjoy can define.</li>
+            </ul>
+
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">Three-Tier Response System + Poisoned Data</h3>
+            <p style="margin-bottom: 1rem;">
+                The Worker never returns 403 — that reveals detection. Instead, score 0–5 gets real data, score 6–9 gets poisoned data (real schema, corrupted values: emails with random suffixes, randomized balances, fabricated routing numbers), and score 10–15 gets completely fake data (fabricated records, random UUIDs, fake email domains). Poisoned data is sneakier than fake data: the attacker gets the same record count, the same IDs, the same structure — just subtly wrong values. To detect it, they'd need a legitimate account to compare against, and even then it's indistinguishable from normal API caching behavior.
             </p>
 
-            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">Heuristic Bot Detection (No Enterprise Required)</h3>
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">Order of Operations</h3>
             <p style="margin-bottom: 1rem;">
-                The Worker uses signals available on all plans via <code>request.cf</code>: ASN (cloud provider VPS = bot farm), User-Agent (python-requests, curl, scrapy), TLS version (old TLS = raw libraries), TLS Client Hello length (real Chrome: ~512 bytes, raw libs: ~150 bytes), and Accept-Language (browsers always send it, bots usually don't). With Enterprise Bot Management, you'd add ML-based scoring (1-99) and JA3/JA4 TLS fingerprinting.
+                Cloudflare pre-computes bot score, JA4 fingerprint, ASN, geo, and TLS version during the connection handshake — before any Worker code runs. By the time the Worker executes, those signals are already on <code>request.cf</code>. The Worker then calls Turnstile siteverify (~50–100ms), checks the KV blocklist (sub-millisecond), queries D1 for velocity (~5–10ms), scores all five signals, and returns the appropriate response tier. Total added latency: ~113ms. The logging, blocklist write, and Slack alert all happen in <code>ctx.waitUntil()</code> after the response is sent.
             </p>
 
             <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">Tarpit Pattern</h3>
             <p style="margin-bottom: 1rem;">
-                The tarpit uses Workers' streaming response support (<code>TransformStream</code>) to hold a connection open for ~30 seconds, dripping one JSON record every 2 seconds. This isn't about wasting bandwidth — it's about wasting the attacker's connection pool. A bot running 100 concurrent connections has all 100 tied up for 30 seconds each, reducing effective throughput by 30x. The tarpit uses wall-clock time (setTimeout), not CPU time, so it stays within Workers' CPU limits.
+                The tarpit uses Workers' streaming response support (<code>TransformStream</code>) to hold a connection open for ~30 seconds, dripping one JSON record every 2 seconds. This isn't about wasting bandwidth — it's about wasting the attacker's connection pool. A bot running 100 concurrent connections has all 100 tied up for 30 seconds each, reducing effective throughput by 30x. Uses wall-clock time (setTimeout), not CPU time, staying within Workers' CPU limits.
             </p>
         </div>
     </details>
