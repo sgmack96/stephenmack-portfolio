@@ -27,6 +27,24 @@ import Base from '../../layouts/Base.astro';
         </div>
     </header>
 
+    <section style="margin-bottom: 2.5rem; border: 1px solid var(--border); border-radius: 0.5rem; padding: 1.25rem 1.5rem;">
+        <h2 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Cycle 1 — Production Hardening (June–July 2026)</h2>
+        <p style="color: var(--text-muted); line-height: 1.7; margin-bottom: 1rem;">
+            Everything below "What I Built" was the original prototype. Since then I've been running a weekly hardening cycle against this same system — each week answers one specific production question and ships a deterministic proof, not just a demo.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 0.875rem; color: var(--text-muted); line-height: 1.6;">
+            <p>
+                <strong style="color: var(--text);">Week 1 — Multi-tenancy.</strong> Added a real <code>orgId</code> boundary across RAG (Vectorize metadata filter), memory (Durable Object keys scoped to <code>orgId:userId</code>, KV keys scoped to <code>ltm:&#123;orgId&#125;:&#123;userId&#125;:&#123;factId&#125;</code>), and audit (org-scoped, role-split reads). Three deterministic admin probes prove zero cross-org leakage — no LLM in the test path. <a href="/blog/multi-tenant-isolation-edge-ai" style="color: var(--accent);">Read the writeup →</a>
+            </p>
+            <p>
+                <strong style="color: var(--text);">Week 2 — Evals as a CI gate.</strong> The LLM-as-judge harness was scoring "groundedness" but missed a real bug: the KB chunk said a 35% discount, the agent answered 25%. Added a deterministic faithfulness check that compares what was actually retrieved against what the response says — separate from the LLM judge, so it can't be masked by the same hallucination it's hunting. The harness caught a second real, flaky bug on its first run. <a href="/blog/evals-ci-gate" style="color: var(--accent);">Read the writeup →</a>
+            </p>
+            <p>
+                <strong style="color: var(--text);">Week 3 — Observability + SLOs.</strong> Every agent request now writes a metric (latency, org, status) via <code>waitUntil()</code>, feeding a per-org health scorecard with p50/p95 latency, error rate, and error budget remaining. The interesting part: the initial p95 target (8000ms) was a guess — real 70B-model-with-RAG traffic measured 11-13 seconds. Recalibrated to 15000ms with the before/after numbers documented and a concrete improvement roadmap (KB answer caching, smaller-model routing for simple queries), instead of shipping a permanently-red dashboard.
+            </p>
+        </div>
+    </section>
+
     <section style="margin-bottom: 2.5rem;">
         <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">The Problem</h2>
         <div style="color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 0.75rem;">
@@ -130,7 +148,7 @@ Cloudflare Worker (Hono router)
             <p><strong style="color: var(--text);">Workers AI</strong> — Llama 3.3 70B for chat generation (streaming), BGE-base-en-v1.5 for embeddings, Llama 3.3 70B again for memory extraction and eval judging. All free on the paid plan.</p>
             <p><strong style="color: var(--text);">Vectorize</strong> — 102 vectors across 3 namespaces. Cosine similarity search with metadata namespace filtering enforces RBAC at the retrieval layer.</p>
             <p><strong style="color: var(--text);">KV</strong> — Two namespaces: rate limit counters (TTL-keyed sliding window) and long-term user memory (fact store, evicts oldest beyond 50 facts).</p>
-            <p><strong style="color: var(--text);">D1</strong> — Audit log for every request: userId, role, agent, tools used, latency, model. Used for usage analytics and eval harness replay.</p>
+            <p><strong style="color: var(--text);">D1</strong> — Two tables: <code>audit_log</code> (userId, role, agent, tools used, org-scoped reads for compliance) and <code>request_metrics</code> (latency, status, agent type — feeds the per-org SLO health scorecard). Kept separate because one carries PII and one doesn't.</p>
         </div>
     </section>
 
