@@ -250,7 +250,13 @@ At the start of every digest session:
 This section captures patterns observed from Stephen's own words during voice calibration sessions. Update this section as new patterns emerge. The goal is to accumulate enough signal over time that the draft voice closely matches Stephen's natural voice.
 
 **Patterns observed so far:**
-- *No entries yet — will be populated as voice calibration questions are answered across sessions.*
+- Uses vivid, accessible analogies — "wagyu steak vs. filet from the grocery store" for mainframe overprovisioning, "rabbit in a magician's hat" for backlogs disappearing, Tony Stark/Jarvis for personalized AI companions
+- Thinks in supply chain terms — sees the whole manufacturing assembly line, not just the end product. "Each cog in that line is printing money" on ASML
+- Goes practical over theoretical — when asked about mainframe migration, went straight to "do it piecemeal, application by application, test before deploying" rather than a strategic framework
+- Skeptical of clean corporate narratives — immediately called out that companies can use AI spend as PR cover for cuts they wanted to make anyway ("without the PR nightmare")
+- Optimistic but grounded — sees the positive outcome ("end of the rainbow looks good") but insists on incremental, tested execution paths. Not cynical, not naive.
+- Enterprise reality check instinct — "non-looping agents work great in personal projects but enterprise grade software with SLAs will need human eyes and ears." The practitioner's position, not the hype position.
+- Pop culture references feel natural — Iron Man/Jarvis, magician's hat. Not forced, used to make abstract concepts tangible.
 
 **Frameworks Stephen gravitates toward:**
 - Zero Trust / continuous verification framing
@@ -258,9 +264,16 @@ This section captures patterns observed from Stephen's own words during voice ca
 - Deterministic tests below the model layer
 - Time compression as the value proposition (not cost reduction)
 - Cloudflare product lens where natural
+- Piecemeal migration — application by application, test before deploying
+- Supply chain thinking — every cog in the assembly line, demand upstream
+- PR-cover skepticism — interrogating whether stated reasons for corporate decisions are the real reasons
 
 **Style tendencies (to be refined):**
-- *Will be populated from Stephen's answers to calibration questions.*
+- Prefers concrete analogies over abstract frameworks
+- Leads with "what would I tell the customer" framing
+- Comfortable with enthusiasm when earned ("how cool would that be" / "AWESOME")
+- Uses informal register naturally — "uncs" for uncle-generation developers, casual phrasing mixed with technical specificity
+- Tends toward shorter, punchier sentences when expressing a strong opinion
 
 ---
 
