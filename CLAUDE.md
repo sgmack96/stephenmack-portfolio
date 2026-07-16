@@ -257,6 +257,12 @@ This section captures patterns observed from Stephen's own words during voice ca
 - Optimistic but grounded — sees the positive outcome ("end of the rainbow looks good") but insists on incremental, tested execution paths. Not cynical, not naive.
 - Enterprise reality check instinct — "non-looping agents work great in personal projects but enterprise grade software with SLAs will need human eyes and ears." The practitioner's position, not the hype position.
 - Pop culture references feel natural — Iron Man/Jarvis, magician's hat. Not forced, used to make abstract concepts tangible.
+- "Human conductors" framing — AI writes the code/does the work, humans conduct the orchestra. The oversight role is orchestration, not authorship.
+- Code bloat awareness — AI writes more code than humans would because it can. "Humans before would do more with less." Engineering instinct toward efficiency.
+- Human approval at the payment layer — sees AI doing logistics but humans approving spend. Practical threshold thinking (e.g., $300 auto-buy limit).
+- Index fund / basket thinker — doesn't pick individual stocks, buys the whole category. "Buy all things involved with computing, memory, SSDs, electrical."
+- "Good enough but accept the trade-offs consciously" — clean framing for enterprise model selection. Not "settle" but "choose the right tool for the job."
+- Geopolitical pragmatism — reads corporate moves (TSMC $100B pledge) as relationship management with current administration first, demand signal second.
 
 **Frameworks Stephen gravitates toward:**
 - Zero Trust / continuous verification framing
