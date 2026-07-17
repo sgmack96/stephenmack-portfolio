@@ -14,7 +14,7 @@ import Base from '../../layouts/Base.astro';
             A technical journal of building a production AI agent system on Cloudflare. Each week targets one production question, ships a deterministic proof, and produces a study chapter with interview-ready answers. Newest first.
         </p>
         <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
-            <span class="badge badge-live">14 Chapters</span>
+            <span class="badge badge-live">14 Chapters (Grouped)</span>
             <span class="badge badge-live">4 Weeks Shipped</span>
             <div style="display: flex; gap: 0.375rem; flex-wrap: wrap;">
                 <span class="tech-tag">Workers</span>
@@ -26,6 +26,16 @@ import Base from '../../layouts/Base.astro';
             </div>
         </div>
     </header>
+
+    <section style="margin-bottom: 2rem; border: 1px solid var(--border); border-radius: 0.75rem; padding: 1rem 1.25rem; background: rgba(30, 41, 59, 0.55);">
+        <h2 style="font-size: 1rem; font-weight: 600; color: var(--accent); margin-bottom: 0.75rem;">How to read this</h2>
+        <p style="color: var(--text-muted); line-height: 1.7; margin-bottom: 0.75rem;">
+            This is not a daily diary dump. It is a condensed public version of the build logs and study chapters: each section names the production question, what shipped, how it was verified, and the interview answer it supports.
+        </p>
+        <p style="color: var(--text-dim); font-size: 0.875rem; line-height: 1.7;">
+            Quick glossary: <strong style="color: var(--text);">SLO</strong> = service-level objective, <strong style="color: var(--text);">p95</strong> = 95th percentile latency, <strong style="color: var(--text);">SSE</strong> = Server-Sent Events streaming, <strong style="color: var(--text);">CAS</strong> = compare-and-swap, <strong style="color: var(--text);">LLM-as-judge</strong> = using a model to score another model's answer.
+        </p>
+    </section>
 
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <!-- WEEK 4                                                                  -->
@@ -43,7 +53,7 @@ import Base from '../../layouts/Base.astro';
                 <div style="color: var(--text-muted); line-height: 1.7;">
                     <div style="background: #1a1a2e; border-left: 3px solid var(--accent); padding: 0.75rem 1rem; margin-bottom: 1.25rem; border-radius: 0 0.25rem 0.25rem 0;">
                         <strong style="color: var(--accent); font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.04em;">Key Insight</strong>
-                        <p style="margin-top: 0.25rem; color: var(--text);">Serialization is a stronger concurrency primitive than locking — you don't prevent races by adding coordination, you prevent them by eliminating parallelism within a single actor.</p>
+                        <p style="margin-top: 0.25rem; color: var(--text);">For state scoped to one Durable Object instance, serialization is a stronger concurrency primitive than locking — you avoid this class of lost-update race by routing all competing writes through one actor.</p>
                     </div>
 
                     <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">The Problem</h3>
@@ -52,7 +62,7 @@ import Base from '../../layouts/Base.astro';
                     <p style="margin-bottom: 1rem;">The bug was invisible for 4 weeks because single-user testing at 1 request/second never triggers a read-modify-write race. Under deliberate concurrency testing (25 simultaneous requests), the counter only reached ~10.</p>
 
                     <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">The Fix</h3>
-                    <p style="margin-bottom: 1rem;">Moved the counter into a <strong style="color: var(--text);">Durable Object</strong> (<code>RateLimiterDO</code>). One DO instance per user, keyed by <code>userId</code>. The DO runtime serializes all requests — <code>storage.get()</code> + <code>storage.put()</code> inside a single <code>fetch()</code> handler cannot race. No locks, no CAS, no distributed coordination.</p>
+                    <p style="margin-bottom: 1rem;">Moved the counter into a <strong style="color: var(--text);">Durable Object</strong> (<code>RateLimiterDO</code>). One DO instance per user, keyed by <code>userId</code>. Because all checks for the same user route to the same DO instance, the read/compare/write sequence is serialized for that counter. No locks, no CAS, no distributed coordination for this access pattern.</p>
 
                     <p style="margin-bottom: 1rem;"><strong style="color: var(--text);">Proof:</strong> 20 concurrent requests for a role with a 20/min limit — all returned 200. Request 21 returned 429. With the old KV implementation, 20 concurrent requests left the counter at ~10.</p>
 
@@ -77,8 +87,8 @@ import Base from '../../layouts/Base.astro';
                             </tr>
                             <tr style="border-bottom: 1px solid var(--border);">
                                 <td style="padding: 0.5rem;">Global latency</td>
-                                <td style="padding: 0.5rem;">~0ms (edge cache)</td>
-                                <td style="padding: 0.5rem;">~5-10ms</td>
+                                <td style="padding: 0.5rem;">Low-latency edge reads</td>
+                                <td style="padding: 0.5rem;">One extra DO hop</td>
                             </tr>
                             <tr>
                                 <td style="padding: 0.5rem;">Best for</td>
@@ -87,6 +97,11 @@ import Base from '../../layouts/Base.astro';
                             </tr>
                         </tbody>
                     </table>
+
+                    <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.25); border-radius: 0.5rem; padding: 0.875rem 1rem; margin-bottom: 1.25rem;">
+                        <strong style="color: var(--green-text); font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.04em;">Verification</strong>
+                        <p style="margin-top: 0.35rem; color: var(--text-muted);">Deployed as Worker version <code>a84d9523</code>. Baseline probes after deploy: <code>health-probe.sh</code> 4/4 and <code>isolation-test.sh</code> 3/3. Concurrency proof: 20 concurrent requests for an <code>ae</code> role (20/min limit) all returned 200; request 21 returned 429.</p>
+                    </div>
 
                     <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Interview Answer</h3>
                     <blockquote style="border-left: 2px solid var(--border); padding-left: 1rem; color: var(--text-muted); font-style: italic; margin-bottom: 1rem;">
@@ -142,6 +157,11 @@ import Base from '../../layouts/Base.astro';
 
                     <p style="margin-bottom: 1rem;">Both chat and streaming paths have the full chain. The streaming path emits a <code>{`{type:"model", reason:"forced_fallback"}`}</code> SSE event before the first token so the client knows which model is responding.</p>
 
+                    <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.25); border-radius: 0.5rem; padding: 0.875rem 1rem; margin-bottom: 1.25rem;">
+                        <strong style="color: var(--green-text); font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.04em;">Verification</strong>
+                        <p style="margin-top: 0.35rem; color: var(--text-muted);">Deployed as Worker version <code>f1e1a899</code>. Normal request used <code>@cf/meta/llama-3.3-70b-instruct-fp8-fast</code>; forced fallback used <code>@cf/meta/llama-3.1-8b-instruct-fp8</code>; streaming fallback emitted <code>{`{type:"model", reason:"forced_fallback"}`}</code>, streamed tokens from the 8B model, then emitted <code>{`{type:"done"}`}</code>. <code>isolation-test.sh</code> stayed 3/3 after deploy.</p>
+                    </div>
+
                     <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Bug Found During Testing</h3>
                     <p style="margin-bottom: 1rem;">The initial fallback model name (<code>@cf/meta/llama-3.1-8b-instruct</code>) doesn't exist in the Workers AI catalog — the correct name is <code>@cf/meta/llama-3.1-8b-instruct-fp8</code>. When the wrong name caused an error, the chain correctly fell all the way to Tier 3 (canned response) — accidentally proving the full degradation path works end-to-end.</p>
 
@@ -177,6 +197,11 @@ import Base from '../../layouts/Base.astro';
                     <p style="margin-bottom: 1rem;">Three pieces: (1) a metric written on every request via <code>waitUntil()</code> — latency, org, agent type, success/failure; (2) a health calculator (<code>getOrgHealth()</code>) that turns raw metrics into p50/p95 latency, error rate, and SLO pass/fail; (3) a deterministic probe (<code>health-probe.sh</code>, 4 checks) that proves the pipeline works without an LLM.</p>
 
                     <p style="margin-bottom: 1rem;">The <code>audit_log</code> and <code>request_metrics</code> tables are intentionally separate: one carries PII (message previews, user roles), one doesn't. Different access patterns, different retention governance — same principle as the short-term/long-term memory split.</p>
+
+                    <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.25); border-radius: 0.5rem; padding: 0.875rem 1rem; margin-bottom: 1.25rem;">
+                        <strong style="color: var(--green-text); font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.04em;">Verification</strong>
+                        <p style="margin-top: 0.35rem; color: var(--text-muted);">Deployed as Worker version <code>97e0b8a4</code>. <code>health-probe.sh</code> passed 4/4 after deploy and verified endpoint reachability, metrics presence, error-rate SLO calculation, and p95 percentile calculation without invoking an LLM.</p>
+                    </div>
 
                     <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">The SLO Recalibration Story</h3>
                     <p style="margin-bottom: 1rem;">The initial p95 target was 8000ms — an aspirational guess. Real production data from a 70B model with RAG (embedding query + vector search + generation) showed p95 at 11-13s. Leaving the target at 8s would mean a permanently red dashboard, which teaches everyone to ignore it. Recalibrated to 15000ms with the before/after numbers documented and a concrete improvement roadmap (KB answer caching, smaller-model routing for simple queries, reducing <code>max_tokens</code>).</p>
@@ -214,6 +239,11 @@ import Base from '../../layouts/Base.astro';
 
                     <p style="margin-bottom: 1rem;">The harness runs as <code>run_eval.sh --ci</code> — exits 1 on any grounding failure, exits 0 clean. 15 test cases across both agents and all five roles. Score progression: 67% &rarr; 73% &rarr; 87% over three iterations.</p>
 
+                    <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.25); border-radius: 0.5rem; padding: 0.875rem 1rem; margin-bottom: 1.25rem;">
+                        <strong style="color: var(--green-text); font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.04em;">Verification</strong>
+                        <p style="margin-top: 0.35rem; color: var(--text-muted);"><code>run_eval.sh --ci</code> was tested in both directions: it exits 1 on a known grounding failure and exits 0 after the prompt fix. The regression suite covered 15 cases and added a deterministic faithfulness dimension that the LLM judge could not self-grade away.</p>
+                    </div>
+
                     <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Interview Answer</h3>
                     <blockquote style="border-left: 2px solid var(--border); padding-left: 1rem; color: var(--text-muted); font-style: italic;">
                         "I built a two-layer eval: an LLM judge for subjective quality, and a deterministic faithfulness check that compares retrieved chunks against the response. The deterministic check caught a real hallucination the LLM judge missed — the KB said 35%, the agent said 25%. The eval runs as a CI gate that blocks deploys on quality regression."
@@ -247,6 +277,11 @@ import Base from '../../layouts/Base.astro';
 
                     <p style="margin-bottom: 1rem;">Three deterministic admin probes (<code>/admin/kb-probe</code>, <code>/admin/memory-probe</code>, <code>/admin/audit-probe</code>) prove zero cross-org leakage — no LLM in the test path. End-to-end test: <code>isolation-test.sh</code> 3/3 pass.</p>
 
+                    <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.25); border-radius: 0.5rem; padding: 0.875rem 1rem; margin-bottom: 1.25rem;">
+                        <strong style="color: var(--green-text); font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.04em;">Verification</strong>
+                        <p style="margin-top: 0.35rem; color: var(--text-muted);"><code>isolation-test.sh</code> runs all three deterministic probes and asserts <code>isolationOk: true</code> for RAG, memory, and audit. The test deliberately avoids LLM generation so a hallucinated response cannot mask an isolation failure.</p>
+                    </div>
+
                     <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Additional Chapters</h3>
                     <p style="margin-bottom: 0.75rem;"><strong style="color: var(--text);">Chapter 1 — The Problem.</strong> Five hard problems in enterprise AI assistants: role-gated access, conversation memory, retrieval quality, evaluation, and multi-tenancy.</p>
                     <p style="margin-bottom: 0.75rem;"><strong style="color: var(--text);">Chapter 2 — Workers and Durable Objects.</strong> V8 isolates, single-threaded DO execution, embedded SQLite. Why DOs eliminate race conditions on conversation state.</p>
@@ -268,7 +303,7 @@ import Base from '../../layouts/Base.astro';
                     <p style="margin-bottom: 1rem;">Two-tier memory: short-term (DO SQLite, last 20 turns per thread) and long-term (KV, extracted facts injected into every future system prompt). The critical lesson: <code>state.waitUntil()</code> is mandatory for fire-and-forget async work inside a DO — without it, the isolate terminates before LTM extraction completes, producing zero results with no error thrown.</p>
 
                     <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Chapter 7 — Streaming SSE</h3>
-                    <p style="margin-bottom: 1rem;"><code>AI.run({`{ stream: true }`})</code> returns a ReadableStream. The DO parses Workers AI's internal SSE format and re-emits three event types: <code>tools</code> (before first token, shows what was retrieved), <code>token</code> (one per token), <code>done</code> (latency + metadata). The Worker passes the DO's stream through with no buffering — TTFB under 100ms.</p>
+                    <p style="margin-bottom: 1rem;"><code>AI.run({`{ stream: true }`})</code> returns a ReadableStream. The DO parses Workers AI's internal SSE format and re-emits three event types: <code>tools</code> (before first token, shows what was retrieved), <code>token</code> (one per token), <code>done</code> (latency + metadata). The Worker passes the DO's stream through without buffering the full model response, which is the design choice that keeps first-token latency low.</p>
                 </div>
             </details>
         </div>
