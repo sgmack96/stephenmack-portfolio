@@ -1,0 +1,314 @@
+---
+import Base from '../../layouts/Base.astro';
+---
+
+<Base title="SE Intel Build Log — Stephen Mack" description="A technical journal of building a production AI agent system on Cloudflare Workers. Weekly build targets, study chapters, theory insights, and interview-ready answers.">
+    <a href="/projects/se-intel" style="color: var(--text-dim); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.25rem; margin-bottom: 2rem;">&larr; Back to SE Intel</a>
+
+    <header style="margin-bottom: 3rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <span style="font-size: 1.5rem;">📓</span>
+            <h1 style="font-size: 1.75rem; font-weight: 700;">SE Intel — Build Log</h1>
+        </div>
+        <p style="color: var(--text-muted); font-size: 1.0625rem; margin-bottom: 1.25rem;">
+            A technical journal of building a production AI agent system on Cloudflare. Each week targets one production question, ships a deterministic proof, and produces a study chapter with interview-ready answers. Newest first.
+        </p>
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+            <span class="badge badge-live">14 Chapters</span>
+            <span class="badge badge-live">4 Weeks Shipped</span>
+            <div style="display: flex; gap: 0.375rem; flex-wrap: wrap;">
+                <span class="tech-tag">Workers</span>
+                <span class="tech-tag">Durable Objects</span>
+                <span class="tech-tag">Workers AI</span>
+                <span class="tech-tag">Vectorize</span>
+                <span class="tech-tag">D1</span>
+                <span class="tech-tag">KV</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- WEEK 4                                                                  -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+    <section style="margin-bottom: 2rem;">
+        <div style="border: 1px solid var(--border); border-radius: 0.75rem; overflow: hidden;">
+            <div style="background: var(--surface); padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
+                <h2 style="font-size: 1.125rem; font-weight: 600; color: var(--accent); margin-bottom: 0.25rem;">Week 4 — Failure Under Load</h2>
+                <p style="color: var(--text-dim); font-size: 0.8125rem;">July 13, 2026 &middot; Interview Q: "What happens when a model provider fails?"</p>
+            </div>
+
+            <details>
+                <summary>Chapter 13 — Atomicity, Lost Updates, and DO Serialization</summary>
+                <div style="color: var(--text-muted); line-height: 1.7;">
+                    <div style="background: #1a1a2e; border-left: 3px solid var(--accent); padding: 0.75rem 1rem; margin-bottom: 1.25rem; border-radius: 0 0.25rem 0.25rem 0;">
+                        <strong style="color: var(--accent); font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.04em;">Key Insight</strong>
+                        <p style="margin-top: 0.25rem; color: var(--text);">Serialization is a stronger concurrency primitive than locking — you don't prevent races by adding coordination, you prevent them by eliminating parallelism within a single actor.</p>
+                    </div>
+
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">The Problem</h3>
+                    <p style="margin-bottom: 1rem;">The rate limiter from Week 1 used Workers KV as a counter: read the current count, add 1, write it back. Under concurrent traffic, this is a textbook <strong style="color: var(--text);">lost update</strong>: 20 requests all read <code>0</code>, all compute <code>0 + 1 = 1</code>, all write <code>1</code>. The counter ends at 1, not 20. KV has no transactions, no compare-and-swap, no atomic increment.</p>
+
+                    <p style="margin-bottom: 1rem;">The bug was invisible for 4 weeks because single-user testing at 1 request/second never triggers a read-modify-write race. Under deliberate concurrency testing (25 simultaneous requests), the counter only reached ~10.</p>
+
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">The Fix</h3>
+                    <p style="margin-bottom: 1rem;">Moved the counter into a <strong style="color: var(--text);">Durable Object</strong> (<code>RateLimiterDO</code>). One DO instance per user, keyed by <code>userId</code>. The DO runtime serializes all requests — <code>storage.get()</code> + <code>storage.put()</code> inside a single <code>fetch()</code> handler cannot race. No locks, no CAS, no distributed coordination.</p>
+
+                    <p style="margin-bottom: 1rem;"><strong style="color: var(--text);">Proof:</strong> 20 concurrent requests for a role with a 20/min limit — all returned 200. Request 21 returned 429. With the old KV implementation, 20 concurrent requests left the counter at ~10.</p>
+
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 0.875rem;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <th style="text-align: left; padding: 0.5rem; color: var(--text);">Property</th>
+                                <th style="text-align: left; padding: 0.5rem; color: var(--text);">KV</th>
+                                <th style="text-align: left; padding: 0.5rem; color: var(--text);">Durable Object</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 0.5rem;">Consistency</td>
+                                <td style="padding: 0.5rem;">Eventual</td>
+                                <td style="padding: 0.5rem;">Strong (serialized)</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 0.5rem;">Atomic increment</td>
+                                <td style="padding: 0.5rem;">No</td>
+                                <td style="padding: 0.5rem;">Yes</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 0.5rem;">Global latency</td>
+                                <td style="padding: 0.5rem;">~0ms (edge cache)</td>
+                                <td style="padding: 0.5rem;">~5-10ms</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 0.5rem;">Best for</td>
+                                <td style="padding: 0.5rem;">Read-heavy caches</td>
+                                <td style="padding: 0.5rem;">Counters, coordination</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Interview Answer</h3>
+                    <blockquote style="border-left: 2px solid var(--border); padding-left: 1rem; color: var(--text-muted); font-style: italic; margin-bottom: 1rem;">
+                        "I found a concurrency bug in our KV-based rate limiter — KV doesn't support atomic read-modify-write, so under 25 concurrent requests the counter only reached ~10 instead of 25. Classic lost update problem. I moved the counter into a Durable Object, which serializes all requests to a given instance — the actor model eliminates the race without adding locks. Verified live: 20 concurrent requests, all 200; request 21, 429."
+                    </blockquote>
+                </div>
+            </details>
+
+            <details>
+                <summary>Chapter 14 — Graceful Degradation: Fallback Chains and Model Tiering</summary>
+                <div style="color: var(--text-muted); line-height: 1.7;">
+                    <div style="background: #1a1a2e; border-left: 3px solid var(--accent); padding: 0.75rem 1rem; margin-bottom: 1.25rem; border-radius: 0 0.25rem 0.25rem 0;">
+                        <strong style="color: var(--accent); font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.04em;">Key Insight</strong>
+                        <p style="margin-top: 0.25rem; color: var(--text);">Degraded service beats no service — a three-tier fallback chain with a debug toggle turns "what happens when AI fails?" from a hand-wave into a live demo.</p>
+                    </div>
+
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">The Problem</h3>
+                    <p style="margin-bottom: 1rem;">Before this work, a Workers AI failure produced a 500 or a broken SSE stream. No fallback, no degraded mode, no informative error. Impossible to demo resilience without waiting for a real outage.</p>
+
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">The Fix — 3-Tier Fallback Chain</h3>
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 0.875rem;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <th style="text-align: left; padding: 0.5rem; color: var(--text);">Tier</th>
+                                <th style="text-align: left; padding: 0.5rem; color: var(--text);">Model</th>
+                                <th style="text-align: left; padding: 0.5rem; color: var(--text);">Latency</th>
+                                <th style="text-align: left; padding: 0.5rem; color: var(--text);">Metric Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 0.5rem;">1 (Primary)</td>
+                                <td style="padding: 0.5rem;">Llama 3.3 70B</td>
+                                <td style="padding: 0.5rem;">4-15s</td>
+                                <td style="padding: 0.5rem;"><code>success</code></td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 0.5rem;">2 (Fallback)</td>
+                                <td style="padding: 0.5rem;">Llama 3.1 8B</td>
+                                <td style="padding: 0.5rem;">0.7-3.5s</td>
+                                <td style="padding: 0.5rem;"><code>fallback</code></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 0.5rem;">3 (Canned)</td>
+                                <td style="padding: 0.5rem;">None (static)</td>
+                                <td style="padding: 0.5rem;">~0.2s</td>
+                                <td style="padding: 0.5rem;"><code>error</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <p style="margin-bottom: 1rem;">The <code>X-Debug-Fallback: true</code> header skips Tier 1 and goes straight to Tier 2. This lets you demo degraded mode on demand, test the fallback path in CI, and verify the canned response works — all without a real outage.</p>
+
+                    <p style="margin-bottom: 1rem;">Both chat and streaming paths have the full chain. The streaming path emits a <code>{`{type:"model", reason:"forced_fallback"}`}</code> SSE event before the first token so the client knows which model is responding.</p>
+
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Bug Found During Testing</h3>
+                    <p style="margin-bottom: 1rem;">The initial fallback model name (<code>@cf/meta/llama-3.1-8b-instruct</code>) doesn't exist in the Workers AI catalog — the correct name is <code>@cf/meta/llama-3.1-8b-instruct-fp8</code>. When the wrong name caused an error, the chain correctly fell all the way to Tier 3 (canned response) — accidentally proving the full degradation path works end-to-end.</p>
+
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Interview Answer</h3>
+                    <blockquote style="border-left: 2px solid var(--border); padding-left: 1rem; color: var(--text-muted); font-style: italic; margin-bottom: 1rem;">
+                        "I built a three-tier fallback chain: primary 70B model, fallback 8B model, and a canned degraded response if both fail. There's a debug toggle — an HTTP header — that lets me skip the primary and demo degraded mode on demand. The metrics distinguish between 'worked normally,' 'worked via fallback,' and 'both failed,' so the health scorecard can measure provider reliability over time."
+                    </blockquote>
+                </div>
+            </details>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- WEEK 3                                                                  -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+    <section style="margin-bottom: 2rem;">
+        <div style="border: 1px solid var(--border); border-radius: 0.75rem; overflow: hidden;">
+            <div style="background: var(--surface); padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
+                <h2 style="font-size: 1.125rem; font-weight: 600; color: var(--accent); margin-bottom: 0.25rem;">Week 3 — Observability + SLOs</h2>
+                <p style="color: var(--text-dim); font-size: 0.8125rem;">July 1, 2026 &middot; Interview Q: "How do you track adoption and health of a system you've shipped?"</p>
+            </div>
+
+            <details>
+                <summary>Chapter 12 — Observability, SLOs, and the Health Scorecard</summary>
+                <div style="color: var(--text-muted); line-height: 1.7;">
+                    <div style="background: #1a1a2e; border-left: 3px solid var(--accent); padding: 0.75rem 1rem; margin-bottom: 1.25rem; border-radius: 0 0.25rem 0.25rem 0;">
+                        <strong style="color: var(--accent); font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.04em;">Key Insight</strong>
+                        <p style="margin-top: 0.25rem; color: var(--text);">An SLO calibrated against real data is honest engineering. An SLO that's permanently red teaches people to ignore dashboards.</p>
+                    </div>
+
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">What We Built</h3>
+                    <p style="margin-bottom: 1rem;">Three pieces: (1) a metric written on every request via <code>waitUntil()</code> — latency, org, agent type, success/failure; (2) a health calculator (<code>getOrgHealth()</code>) that turns raw metrics into p50/p95 latency, error rate, and SLO pass/fail; (3) a deterministic probe (<code>health-probe.sh</code>, 4 checks) that proves the pipeline works without an LLM.</p>
+
+                    <p style="margin-bottom: 1rem;">The <code>audit_log</code> and <code>request_metrics</code> tables are intentionally separate: one carries PII (message previews, user roles), one doesn't. Different access patterns, different retention governance — same principle as the short-term/long-term memory split.</p>
+
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">The SLO Recalibration Story</h3>
+                    <p style="margin-bottom: 1rem;">The initial p95 target was 8000ms — an aspirational guess. Real production data from a 70B model with RAG (embedding query + vector search + generation) showed p95 at 11-13s. Leaving the target at 8s would mean a permanently red dashboard, which teaches everyone to ignore it. Recalibrated to 15000ms with the before/after numbers documented and a concrete improvement roadmap (KB answer caching, smaller-model routing for simple queries, reducing <code>max_tokens</code>).</p>
+
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Interview Answer</h3>
+                    <blockquote style="border-left: 2px solid var(--border); padding-left: 1rem; color: var(--text-muted); font-style: italic;">
+                        "Every agent request writes a structured metric — latency, org, status — via waitUntil so it never blocks the response. The health scorecard computes p50/p95 latency and error rate per org against documented SLOs. When the initial target was wrong, I recalibrated it against real data with the numbers documented, rather than shipping a dashboard that's always red."
+                    </blockquote>
+                </div>
+            </details>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- WEEK 2                                                                  -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+    <section style="margin-bottom: 2rem;">
+        <div style="border: 1px solid var(--border); border-radius: 0.75rem; overflow: hidden;">
+            <div style="background: var(--surface); padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
+                <h2 style="font-size: 1.125rem; font-weight: 600; color: var(--accent); margin-bottom: 0.25rem;">Week 2 — Evals as a CI Gate</h2>
+                <p style="color: var(--text-dim); font-size: 0.8125rem;">June 22, 2026 &middot; Interview Q: "How do you measure LLM quality?" &middot; <a href="/blog/evals-ci-gate" style="color: var(--accent);">Read the full post &rarr;</a></p>
+            </div>
+
+            <details>
+                <summary>Chapter 8 — Evaluation: LLM-as-Judge, Faithfulness, and CI Gates</summary>
+                <div style="color: var(--text-muted); line-height: 1.7;">
+                    <div style="background: #1a1a2e; border-left: 3px solid var(--accent); padding: 0.75rem 1rem; margin-bottom: 1.25rem; border-radius: 0 0.25rem 0.25rem 0;">
+                        <strong style="color: var(--accent); font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.04em;">Key Insight</strong>
+                        <p style="margin-top: 0.25rem; color: var(--text);">An LLM judging its own output has the same blind spots as the model that generated it. Deterministic checks catch what LLM-as-judge cannot.</p>
+                    </div>
+
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">What We Built</h3>
+                    <p style="margin-bottom: 1rem;">A Python eval harness with two layers: (1) an LLM-as-judge scorer (5 dimensions, 15-point scale) for subjective quality; (2) a deterministic <code>faithfulness.py</code> check that compares retrieved KB chunks against the response text — no LLM in the loop. The deterministic check caught a real bug the LLM judge missed: the KB chunk said "35% discount" but the agent answered "25%."</p>
+
+                    <p style="margin-bottom: 1rem;">The harness runs as <code>run_eval.sh --ci</code> — exits 1 on any grounding failure, exits 0 clean. 15 test cases across both agents and all five roles. Score progression: 67% &rarr; 73% &rarr; 87% over three iterations.</p>
+
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Interview Answer</h3>
+                    <blockquote style="border-left: 2px solid var(--border); padding-left: 1rem; color: var(--text-muted); font-style: italic;">
+                        "I built a two-layer eval: an LLM judge for subjective quality, and a deterministic faithfulness check that compares retrieved chunks against the response. The deterministic check caught a real hallucination the LLM judge missed — the KB said 35%, the agent said 25%. The eval runs as a CI gate that blocks deploys on quality regression."
+                    </blockquote>
+                </div>
+            </details>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- WEEK 1                                                                  -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+    <section style="margin-bottom: 2rem;">
+        <div style="border: 1px solid var(--border); border-radius: 0.75rem; overflow: hidden;">
+            <div style="background: var(--surface); padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
+                <h2 style="font-size: 1.125rem; font-weight: 600; color: var(--accent); margin-bottom: 0.25rem;">Week 1 — Multi-Tenancy</h2>
+                <p style="color: var(--text-dim); font-size: 0.8125rem;">June 15, 2026 &middot; Interview Q: "How do you keep customer data isolated?" &middot; <a href="/blog/multi-tenant-isolation-edge-ai" style="color: var(--accent);">Read the full post &rarr;</a></p>
+            </div>
+
+            <details>
+                <summary>Chapters 1-5 — Problem, Workers + DOs, Auth, Rate Limiting, RAG</summary>
+                <div style="color: var(--text-muted); line-height: 1.7;">
+                    <div style="background: #1a1a2e; border-left: 3px solid var(--accent); padding: 0.75rem 1rem; margin-bottom: 1.25rem; border-radius: 0 0.25rem 0.25rem 0;">
+                        <strong style="color: var(--accent); font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.04em;">Key Insight</strong>
+                        <p style="margin-top: 0.25rem; color: var(--text);">DO isolation and Vectorize metadata filtering are two different layers at two different scopes — DOs give user-level physical isolation, the orgId filter gives org-level logical isolation. The claim existed without the enforcement until we added the filter.</p>
+                    </div>
+
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">What We Built</h3>
+                    <p style="margin-bottom: 1rem;">Threaded <code>orgId</code> isolation across three layers: (1) <strong style="color: var(--text);">RAG</strong> — Vectorize metadata filter at query time, <code>"global"</code> sentinel for shared docs; (2) <strong style="color: var(--text);">Memory</strong> — DO keys scoped to <code>orgId:userId</code> (7 sites), KV keys to <code>ltm:{`{orgId}:{userId}:{factId}`}</code> (5 sites); (3) <strong style="color: var(--text);">Audit</strong> — org-scoped reads, role-split (manager sees org, individual sees own).</p>
+
+                    <p style="margin-bottom: 1rem;">Three deterministic admin probes (<code>/admin/kb-probe</code>, <code>/admin/memory-probe</code>, <code>/admin/audit-probe</code>) prove zero cross-org leakage — no LLM in the test path. End-to-end test: <code>isolation-test.sh</code> 3/3 pass.</p>
+
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Additional Chapters</h3>
+                    <p style="margin-bottom: 0.75rem;"><strong style="color: var(--text);">Chapter 1 — The Problem.</strong> Five hard problems in enterprise AI assistants: role-gated access, conversation memory, retrieval quality, evaluation, and multi-tenancy.</p>
+                    <p style="margin-bottom: 0.75rem;"><strong style="color: var(--text);">Chapter 2 — Workers and Durable Objects.</strong> V8 isolates, single-threaded DO execution, embedded SQLite. Why DOs eliminate race conditions on conversation state.</p>
+                    <p style="margin-bottom: 0.75rem;"><strong style="color: var(--text);">Chapter 3 — Auth and Zero Trust.</strong> JWT verification via WebCrypto, defense-in-depth (three enforcement layers for RBAC).</p>
+                    <p style="margin-bottom: 0.75rem;"><strong style="color: var(--text);">Chapter 4 — Rate Limiting.</strong> Sliding window counter design, per-role limits, TTL-based cleanup. (Later replaced by DO in Week 4.)</p>
+                    <p style="margin-bottom: 0.75rem;"><strong style="color: var(--text);">Chapter 5 — RAG Pipeline.</strong> BGE-base embeddings, Vectorize cosine similarity, namespace filtering, parallel multi-namespace queries, eager tool calling.</p>
+
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Interview Answer</h3>
+                    <blockquote style="border-left: 2px solid var(--border); padding-left: 1rem; color: var(--text-muted); font-style: italic;">
+                        "Every user gets their own Durable Object — a physically separate SQLite database, not a filtered view of a shared table. At the org level, Vectorize queries are filtered by orgId metadata at query time. Three deterministic probes prove zero cross-org leakage across RAG, memory, and audit — no LLM in the test path."
+                    </blockquote>
+                </div>
+            </details>
+
+            <details>
+                <summary>Chapters 6-7 — Memory and Streaming</summary>
+                <div style="color: var(--text-muted); line-height: 1.7;">
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">Chapter 6 — Memory (Short-Term + Long-Term)</h3>
+                    <p style="margin-bottom: 1rem;">Two-tier memory: short-term (DO SQLite, last 20 turns per thread) and long-term (KV, extracted facts injected into every future system prompt). The critical lesson: <code>state.waitUntil()</code> is mandatory for fire-and-forget async work inside a DO — without it, the isolate terminates before LTM extraction completes, producing zero results with no error thrown.</p>
+
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Chapter 7 — Streaming SSE</h3>
+                    <p style="margin-bottom: 1rem;"><code>AI.run({`{ stream: true }`})</code> returns a ReadableStream. The DO parses Workers AI's internal SSE format and re-emits three event types: <code>tools</code> (before first token, shows what was retrieved), <code>token</code> (one per token), <code>done</code> (latency + metadata). The Worker passes the DO's stream through with no buffering — TTFB under 100ms.</p>
+                </div>
+            </details>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- FOUNDATION                                                              -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+    <section style="margin-bottom: 2rem;">
+        <div style="border: 1px solid var(--border); border-radius: 0.75rem; overflow: hidden;">
+            <div style="background: var(--surface); padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
+                <h2 style="font-size: 1.125rem; font-weight: 600; color: var(--accent); margin-bottom: 0.25rem;">Foundation — Pre-Cycle Study</h2>
+                <p style="color: var(--text-dim); font-size: 0.8125rem;">Chapters covering MCP, failure modes, and behavioral prep</p>
+            </div>
+
+            <details>
+                <summary>Chapters 9-11 — MCP, Failure Modes, Behavioral</summary>
+                <div style="color: var(--text-muted); line-height: 1.7;">
+                    <p style="margin-bottom: 0.75rem;"><strong style="color: var(--text);">Chapter 9 — MCP (Model Context Protocol).</strong> Built an MCP server for SE Intel (<code>research_account</code>, <code>get_enablement</code>, <code>get_memory</code> tools). Stdio transport, thin bridge pattern — the MCP server is a protocol adapter, not a second copy of the business logic.</p>
+                    <p style="margin-bottom: 0.75rem;"><strong style="color: var(--text);">Chapter 10 — Failure Modes.</strong> Component failure map: what happens when each dependency (Workers AI, Vectorize, D1, KV) goes down. Trade-offs table for each failure mode — which ones are acceptable (metrics write fails silently) and which aren't (auth bypass).</p>
+                    <p><strong style="color: var(--text);">Chapter 11 — Behavioral Prep.</strong> 60-second pitch, 5-minute deep dive, screening question answers. Each tied to specific chapters and deployed code, not abstract claims.</p>
+                </div>
+            </details>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- FOOTER                                                                  -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+    <section style="margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+        <p style="color: var(--text-dim); font-size: 0.875rem; line-height: 1.7;">
+            This build log is a living document. Each entry is written after the code ships and the theory is studied — not before. Every interview answer references deployed, verified code at <a href="https://se-intel-portfolio.stephenmack96.workers.dev" style="color: var(--accent);">se-intel-portfolio.stephenmack96.workers.dev</a>.
+        </p>
+        <p style="color: var(--text-dim); font-size: 0.875rem; margin-top: 0.75rem;">
+            <a href="/projects/se-intel" style="color: var(--accent);">&larr; Back to SE Intel project page</a> &middot;
+            <a href="/blog" style="color: var(--accent);">Blog posts</a> &middot;
+            <a href="https://github.com/sgmack96/ai-dev" style="color: var(--accent);">Source code</a>
+        </p>
+    </section>
+
+</Base>

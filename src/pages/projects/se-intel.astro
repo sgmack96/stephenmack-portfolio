@@ -13,6 +13,9 @@ import Base from '../../layouts/Base.astro';
         <p style="color: var(--text-muted); font-size: 1.0625rem; margin-bottom: 1.25rem;">
             A role-gated multi-agent revenue intelligence platform — pre-call research and sales coaching, grounded in a 102-chunk RAG knowledge base with streaming responses and cross-session memory.
         </p>
+        <p style="margin-bottom: 1.25rem;">
+            <a href="/projects/se-intel-build-log" style="color: var(--accent); font-size: 0.9375rem; font-weight: 500;">View the full Build Log (14 study chapters, weekly theory insights) &rarr;</a>
+        </p>
         <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
             <span class="badge badge-live">Live</span>
             <div style="display: flex; gap: 0.375rem; flex-wrap: wrap;">
@@ -41,6 +44,9 @@ import Base from '../../layouts/Base.astro';
             </p>
             <p>
                 <strong style="color: var(--text);">Week 3 — Observability + SLOs.</strong> Every agent request now writes a metric (latency, org, status) via <code>waitUntil()</code>, feeding a per-org health scorecard with p50/p95 latency, error rate, and error budget remaining. The interesting part: the initial p95 target (8000ms) was a guess — real 70B-model-with-RAG traffic measured 11-13 seconds. Recalibrated to 15000ms with the before/after numbers documented and a concrete improvement roadmap (KB answer caching, smaller-model routing for simple queries), instead of shipping a permanently-red dashboard.
+            </p>
+            <p>
+                <strong style="color: var(--text);">Week 4 — Failure under load.</strong> Two fixes: (1) found a concurrency bug in the KV-based rate limiter — 25 concurrent requests only counted ~10. Moved the counter into a Durable Object where all requests are serialized (actor model, no locks needed). Verified: 20 concurrent requests counted exactly 20. (2) Built a 3-tier fallback chain: primary 70B model &rarr; fallback 8B model &rarr; canned degraded response. An <code>X-Debug-Fallback</code> header lets you demo degraded mode on demand. <a href="/projects/se-intel-build-log" style="color: var(--accent);">Full technical details in the build log &rarr;</a>
             </p>
         </div>
     </section>
