@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro';
 ---
 
-<Base title="FIFA World Cup Draft Pool — Stephen Mack" description="Fantasy draft order based on World Cup results. Monte Carlo scoring, multi-pool deployment, zero infrastructure.">
+<Base title="FIFA World Cup Draft Pool — Stephen Mack" description="Fantasy draft order for 48 users across 5 pools, calibrated by Monte Carlo simulation and validated against real tournament data. Built on Cloudflare Workers.">
     <a href="/" style="color: var(--text-dim); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.25rem; margin-bottom: 2rem;">&larr; Back to Home</a>
 
     <header style="margin-bottom: 3rem;">
@@ -11,15 +11,16 @@ import Base from '../../layouts/Base.astro';
             <h1 style="font-size: 1.75rem; font-weight: 700;">FIFA World Cup Draft Pool</h1>
         </div>
         <p style="color: var(--text-muted); font-size: 1.0625rem; margin-bottom: 1.25rem;">
-            Fantasy draft order for 12 friends — determined by World Cup results, calibrated by Monte Carlo simulation.
+            Fantasy draft order for 48 users across 5 pools — calibrated by Monte Carlo simulation, validated against real tournament data. Ran the full 2026 World Cup: 103 matches, 270 fantasy points awarded, scoring model confirmed.
         </p>
         <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
-            <a href="https://fifa.macksportreport.com" target="_blank" class="btn btn-primary">View Live App &nearr;</a>
-            <span class="badge badge-live">Live</span>
+            <a href="https://github.com/sgmack96/fifa-world-cup-2026-draft-pool" target="_blank" class="btn btn-primary">View Source &nearr;</a>
+            <span class="badge" style="background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); font-size: 0.75rem; padding: 0.25rem 0.625rem; border-radius: 999px;">Completed</span>
             <div style="display: flex; gap: 0.375rem; flex-wrap: wrap;">
                 <span class="tech-tag">Workers</span>
                 <span class="tech-tag">KV</span>
                 <span class="tech-tag">TypeScript</span>
+                <span class="tech-tag">Python</span>
             </div>
         </div>
     </header>
@@ -35,15 +36,76 @@ import Base from '../../layouts/Base.astro';
         <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">What I Built</h2>
         <div style="color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 0.75rem;">
             <p>
-                A full-stack web app that manages the entire pool lifecycle: draft randomization with group-conflict constraints, live match result entry, fantasy point calculation with tier-weighted multipliers, and a real-time leaderboard. Three independent pools share the same codebase with separate KV namespaces, and a central admin hub fans out match results to all three simultaneously.
+                A full-stack web app that manages the entire pool lifecycle: draft randomization with group-conflict constraints, live match result entry, fantasy point calculation with tier-weighted multipliers, and a real-time leaderboard. Five independent pools (three 12-person, one 10-person, one head-to-head) share the same codebase with separate KV namespaces, and a central admin hub fans out match results to all five simultaneously.
             </p>
             <p>
-                The scoring system was calibrated using Monte Carlo simulation — 5,000 full tournament runs using real betting odds. The simulation revealed that without tier multipliers, Tier 1 teams dominated ~96% of every owner's score. The chosen multipliers (1x/2x/4x/8x) produce balanced contribution across tiers — each tier accounts for roughly 25-30% of the winning owner's score.
+                The scoring system was calibrated using Monte Carlo simulation — 5,000 full tournament runs using real betting odds. The simulation revealed that without tier multipliers, Tier 1 teams dominated ~96% of every owner's score. The chosen multipliers (1x/2x/4x/8x) were designed to produce balanced contribution across tiers — each tier accounting for roughly 25-30% of the winning owner's score.
             </p>
         </div>
         <img src="/images/fifa/fifa-leaderboard.png" alt="FIFA Draft Pool leaderboard showing ranked owners with team breakdowns and fantasy points" style="width: 100%; border-radius: 0.5rem; border: 1px solid var(--border); margin-top: 1.5rem;" />
         <img src="/images/fifa/fifa-results.png" alt="Match results page with fantasy point impact chips per owner" style="width: 100%; border-radius: 0.5rem; border: 1px solid var(--border); margin-top: 0.75rem;" />
         <img src="/images/fifa/fifa-admin-hub.png" alt="Central admin hub fanning out match results to 3 pools simultaneously" style="width: 100%; border-radius: 0.5rem; border: 1px solid var(--border); margin-top: 0.75rem;" />
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Post-Tournament Results</h2>
+        <p style="color: var(--text-muted); line-height: 1.7; margin-bottom: 1.25rem;">
+            The app ran the full 2026 World Cup — 103 matches from group stage through the Final (Spain 1-0 Argentina). After the tournament, I wrote a Python analysis script that pulled live data from all 5 pool APIs and validated the scoring model against real outcomes.
+        </p>
+
+        <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">Tier Balance: Validated</h3>
+        <p style="color: var(--text-muted); line-height: 1.7; margin-bottom: 1rem;">
+            The Monte Carlo simulation predicted each tier should contribute ~25-30% of total fantasy points. The real tournament delivered:
+        </p>
+        <div style="overflow-x: auto; margin-bottom: 1rem;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem; color: var(--text-muted);">
+                <thead>
+                    <tr style="border-bottom: 1px solid var(--border); text-align: left;">
+                        <th style="padding: 0.5rem 0.75rem; color: var(--text);">Tier</th>
+                        <th style="padding: 0.5rem 0.75rem; color: var(--text);">Multiplier</th>
+                        <th style="padding: 0.5rem 0.75rem; color: var(--text);">Actual %</th>
+                        <th style="padding: 0.5rem 0.75rem; color: var(--text);">Without Multipliers</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 0.5rem 0.75rem;">T1 — Favorites</td>
+                        <td style="padding: 0.5rem 0.75rem;">1x</td>
+                        <td style="padding: 0.5rem 0.75rem; color: var(--green);">30.7%</td>
+                        <td style="padding: 0.5rem 0.75rem;">60.6%</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 0.5rem 0.75rem;">T2 — Contenders</td>
+                        <td style="padding: 0.5rem 0.75rem;">2x</td>
+                        <td style="padding: 0.5rem 0.75rem; color: var(--green);">21.1%</td>
+                        <td style="padding: 0.5rem 0.75rem;">20.8%</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 0.5rem 0.75rem;">T3 — Dark Horses</td>
+                        <td style="padding: 0.5rem 0.75rem;">4x</td>
+                        <td style="padding: 0.5rem 0.75rem; color: var(--green);">27.4%</td>
+                        <td style="padding: 0.5rem 0.75rem;">13.5%</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 0.5rem 0.75rem;">T4 — Cinderellas</td>
+                        <td style="padding: 0.5rem 0.75rem;">8x</td>
+                        <td style="padding: 0.5rem 0.75rem; color: var(--green);">20.7%</td>
+                        <td style="padding: 0.5rem 0.75rem;">5.1%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p style="color: var(--text-muted); line-height: 1.7; margin-bottom: 1.25rem;">
+            Spread of 10 percentage points across all 4 tiers. Without multipliers, T1 would have dominated at 61% and T4 would have been irrelevant at 5%. The multiplier system compressed this to a 21-31% range — the sim's design goal held against real-world variance.
+        </p>
+
+        <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem;">Headline Stories from the Data</h3>
+        <ul style="color: var(--text-muted); line-height: 1.7; list-style: none; display: flex; flex-direction: column; gap: 0.625rem;">
+            <li>&#8226; <strong style="color: var(--text);">Cape Verde (1000-1 odds, T4)</strong> never won a single match — 0W-3D-0L — but earned 12.0 fantasy pts from draws alone, tying Argentina and outscoring Brazil, Germany, Portugal, and Netherlands</li>
+            <li>&#8226; <strong style="color: var(--text);">Egypt (300-1 odds, T3)</strong> was the #2 most valuable team in the tournament at 14.0 pts, behind only champion Spain (18.0). Whoever drafted Egypt won their pool in 3 of 4 standard pools</li>
+            <li>&#8226; <strong style="color: var(--text);">A single T4 group stage win</strong> (8.0 pts) was worth more than Spain winning the entire Final (5.0 pts) — the multiplier system working exactly as designed</li>
+            <li>&#8226; <strong style="color: var(--text);">Cross-pool comparison</strong> showed draft luck dominated outcomes: the same 103 matches produced pool winners ranging from 29.5 to 41.0 pts and last-place finishers from 9.5 to 14.0 pts, purely based on random team assignment</li>
+        </ul>
     </section>
 
     <section style="margin-bottom: 2.5rem;">
@@ -54,20 +116,23 @@ import Base from '../../layouts/Base.astro';
 │  ┌─────────────────┐     ┌─────────────────────────────┐ │
 │  │  Workers (V8)   │────▶│     KV Namespace             │ │
 │  │                 │     │  ┌─────────────────────────┐ │ │
-│  │  - Router       │     │  │ owners: [...12 owners]  │ │ │
+│  │  - Router       │     │  │ owners: [...owners]     │ │ │
 │  │  - Draft logic  │     │  │ results: [...matches]   │ │ │
 │  │  - Scoring calc │     │  │ owner_names: [...names] │ │ │
 │  │  - SSR HTML     │     │  └─────────────────────────┘ │ │
 │  └─────────────────┘     └─────────────────────────────┘ │
 │                                                          │
-│  Pool 1: fifa.macksportreport.com                        │
-│  Pool 2: ox.macksportreport.com                          │
-│  Pool 3: bbff.macksportreport.com                        │
-│  (Separate Workers + separate KV namespaces)             │
+│  5 Pools (separate Workers + KV namespaces each)         │
+│  3× 12-person pools, 1× 10-person, 1× head-to-head     │
 │                                                          │
 │  ┌─────────────────────────────────────────────────────┐ │
 │  │  Admin Hub (admin.macksportreport.com)              │ │
-│  │  Enter scores once → fans out to all 3 pool APIs   │ │
+│  │  Enter scores once → fans out to all 5 pool APIs   │ │
+│  └─────────────────────────────────────────────────────┘ │
+│                                                          │
+│  ┌─────────────────────────────────────────────────────┐ │
+│  │  Post-Tournament Analysis (Python)                 │ │
+│  │  Fetches all 5 APIs → validates scoring model      │ │
 │  └─────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────┘`}</pre>
     </section>
@@ -82,19 +147,22 @@ import Base from '../../layouts/Base.astro';
             <p style="margin-bottom: 1rem;">The draft randomizer assigns 1 team per tier to each owner with a group conflict constraint: no owner can have two teams from the same FIFA group (they'd play each other, creating a conflict of interest). The algorithm shuffles teams per tier and assigns greedily with backtracking, retrying up to 200 times if a shuffle produces an unsolvable assignment.</p>
 
             <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Multi-Pool Support</h3>
-            <p style="margin-bottom: 1rem;">Three pools run on identical source code deployed as separate Workers with separate KV namespaces. A fourth Worker (the Admin Hub) acts as a fan-out proxy — when a match result is submitted, it fires 3 parallel <code>fetch()</code> calls to all pool APIs simultaneously. Each pool's response is shown individually so the admin knows if any pool had an issue.</p>
+            <p style="margin-bottom: 1rem;">Five pools run on shared source code deployed as separate Workers with separate KV namespaces. Pools varied in size: three 12-person pools, one 10-person pool (with 40 teams instead of 48), and one head-to-head pool (2 owners, 24 teams each, different draft algorithm). A sixth Worker (the Admin Hub) acts as a fan-out proxy — when a match result is submitted, it fires 5 parallel <code>fetch()</code> calls to all pool APIs simultaneously.</p>
 
             <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Monte Carlo Calibration</h3>
-            <p>The <code>simulation/</code> directory contains Python scripts that ran 5,000 full tournament simulations using real betting odds. The simulation tested various multiplier combinations and measured tier contribution variance. The 1x/2x/4x/8x scheme was chosen because it produces the most balanced expected contribution: each tier accounts for ~25-30% of the winning owner's total score.</p>
+            <p style="margin-bottom: 1rem;">The <code>simulation/</code> directory contains Python scripts that ran 5,000 full tournament simulations using real betting odds. The simulation tested various multiplier combinations and measured tier contribution variance. The 1x/2x/4x/8x scheme was chosen because it produces the most balanced expected contribution: each tier accounts for ~25-30% of the winning owner's total score.</p>
+
+            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.75rem; margin-top: 1.5rem;">Post-Tournament Analysis</h3>
+            <p>After all 103 matches were played, a Python analysis script fetched live JSON from all 5 pool APIs (identical match results, different owner-team assignments) and computed: tier-balance validation against the sim's predictions, team value rankings vs. pre-tournament odds, per-pool final standings with tiebreaker identification, and a cross-pool draft luck comparison showing how random team assignment variance drove outcome differences.</p>
         </div>
     </details>
 
     <section style="margin-bottom: 2.5rem;">
         <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Cloudflare Products Used</h2>
         <div style="display: flex; flex-direction: column; gap: 0.75rem; color: var(--text-muted); line-height: 1.6;">
-            <p><strong style="color: var(--text);">Workers</strong> — Application runtime. Full-stack SSR with routing, API handlers, draft logic, scoring calculations, and HTML rendering. Zero cold starts, global distribution. ~1,500 lines of TypeScript, no framework.</p>
-            <p><strong style="color: var(--text);">KV</strong> — Global key-value storage. Three keys per pool (<code>owners</code>, <code>results</code>, <code>owner_names</code>) serve the entire tournament lifecycle. Sub-10ms reads at the edge.</p>
-            <p><strong style="color: var(--text);">Custom Domains</strong> — Each pool has its own domain via Cloudflare DNS + Workers routes. The same codebase deploys to 3 domains with different KV bindings.</p>
+            <p><strong style="color: var(--text);">Workers</strong> — Application runtime. 6 Workers total (5 pool instances + 1 admin hub). Full-stack SSR with routing, API handlers, draft logic, scoring calculations, and HTML rendering. Zero cold starts, global distribution. ~2,000 lines of TypeScript per worker, no framework.</p>
+            <p><strong style="color: var(--text);">KV</strong> — Global key-value storage. Three keys per pool (<code>owners</code>, <code>results</code>, <code>owner_names</code>) served the entire tournament lifecycle across 103 matches for 48 users. Sub-10ms reads at the edge.</p>
+            <p><strong style="color: var(--text);">Custom Domains</strong> — 6 custom subdomains via Cloudflare DNS + Workers routes. The same codebase deploys to multiple domains with different KV bindings — the white-label SaaS pattern.</p>
             <p><strong style="color: var(--text);">Wrangler CLI</strong> — Single-command deployment. <code>wrangler deploy</code> pushes to 300+ edge locations instantly.</p>
         </div>
     </section>
@@ -102,10 +170,22 @@ import Base from '../../layouts/Base.astro';
     <section style="margin-bottom: 2.5rem;">
         <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">What I Learned</h2>
         <ul style="color: var(--text-muted); line-height: 1.7; list-style: none; display: flex; flex-direction: column; gap: 0.625rem;">
-            <li>&#8226; KV is the right database for simple global state — three keys serve an entire multi-round tournament for 12 users at sub-10ms reads</li>
+            <li>&#8226; KV is the right database for simple global state — three keys per pool served an entire multi-round tournament for 48 users at sub-10ms reads with zero issues across 103 matches</li>
             <li>&#8226; Workers SSR replaces an entire Node.js server. No framework, no bundler, no cold starts, no Docker — total upload is 58KB (14KB gzipped)</li>
-            <li>&#8226; Multi-tenancy via separate KV namespaces + identical Workers code is the pattern for white-label SaaS on Cloudflare</li>
-            <li>&#8226; Monte Carlo simulation revealed that without tier multipliers, top-seeded teams dominated 96% of outcomes — math matters for fairness, not just intuition</li>
+            <li>&#8226; Multi-tenancy via separate KV namespaces + identical Workers code is the pattern for white-label SaaS on Cloudflare — but copy-pasting source across 5 directories created ~7,850 lines of duplication that would have been a maintenance problem for a longer-lived project</li>
+            <li>&#8226; Monte Carlo simulation predicted 25-30% contribution per tier — real tournament data landed at 21-31%, validating the model within a 10-point spread. The sim's counterfactual (T1 dominates at 96% without multipliers) showed up as 61% in practice — less extreme than predicted but still lopsided enough to prove the multipliers were necessary</li>
+            <li>&#8226; Scoring granularity matters: 0.5-point increments across 4 teams per owner created ties in 3 of 4 standard pools. A tiebreaker cascade (knockout wins, then best single team) should have been designed into the scoring system from the start, not discovered after the tournament ended</li>
+        </ul>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Retrospective: What I'd Change</h2>
+        <ul style="color: var(--text-muted); line-height: 1.7; list-style: none; display: flex; flex-direction: column; gap: 0.625rem;">
+            <li>&#8226; <strong style="color: var(--text);">Consolidate the workers.</strong> Five near-identical <code>worker/</code> directories with ~7,850 lines of duplication. Should be a single shared source parameterized by <code>wrangler.toml</code> env vars (<code>NUM_OWNERS</code>, <code>POOL_NAME</code>, <code>DRAFT_MODE</code>) and deployed with <code>wrangler deploy --config pools/pool1.toml</code></li>
+            <li>&#8226; <strong style="color: var(--text);">Move admin tokens to Cloudflare Secrets.</strong> Used <code>[vars] ADMIN_TOKEN = "admin"</code> in plaintext, committed to git. Should use <code>wrangler secret put</code> — secrets are encrypted at rest and never appear in deployment configs</li>
+            <li>&#8226; <strong style="color: var(--text);">Add input validation on the API.</strong> The <code>/api/add-result</code> endpoint accepted any JSON without verifying team names, score ranges, or round validity. A typo in a team name would silently produce zero fantasy points with no error</li>
+            <li>&#8226; <strong style="color: var(--text);">Design tiebreakers upfront.</strong> Pool 1 had 3 ties affecting 6 of 12 draft positions. The leaderboard sorted by points only — no cascade for knockout wins, best single team, or coin flip. This should have been part of the scoring spec, not a post-tournament discovery</li>
+            <li>&#8226; <strong style="color: var(--text);">Add CORS to write endpoints.</strong> No origin restrictions on POST routes — combined with the weak admin token, any website could have submitted results. Defense-in-depth was missing</li>
         </ul>
     </section>
 
@@ -114,7 +194,8 @@ import Base from '../../layouts/Base.astro';
         <ul style="color: var(--text-muted); line-height: 1.7; list-style: none; display: flex; flex-direction: column; gap: 0.625rem;">
             <li>&#8226; Demonstrates Workers as a complete full-stack platform — compute + storage + routing, zero origin server</li>
             <li>&#8226; Multi-tenant deployment pattern maps directly to how startups build SaaS products on Cloudflare</li>
-            <li>&#8226; Monte Carlo calibration shows data-driven product decisions, not just shipping features</li>
+            <li>&#8226; Monte Carlo calibration shows data-driven product decisions, not just shipping features — and post-tournament validation proves the model held against real-world variance</li>
+            <li>&#8226; The retrospective demonstrates engineering maturity: shipped it, operated it through a live event, analyzed the data, and identified concrete improvements — not just "I built a thing"</li>
         </ul>
     </section>
 </Base>
