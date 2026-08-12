@@ -22,4 +22,15 @@ const digest = defineCollection({
   }),
 });
 
-export const collections = { blog, digest };
+const books = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/books' }),
+  schema: z.object({
+    title: z.string(),
+    author: z.string(),
+    category: z.enum(['personal', 'business']),
+    date: z.string(),
+    description: z.string(),
+  }),
+});
+
+export const collections = { blog, digest, books };

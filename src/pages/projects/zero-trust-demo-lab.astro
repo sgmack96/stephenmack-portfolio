@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro';
 ---
 
-<Base title="Zero Trust Demo Lab — Stephen Mack" description="BYOD device enrolled in Cloudflare WARP, Gateway policies enforcing identity-aware web filtering, and Access protecting a live Workers app — end-to-end Zero Trust without a VPN.">
+<Base title="Zero Trust Demo Lab — Stephen Mack" description="Personal Mac enrolled in WARP, SE Intel protected behind a Tunnel and Access, Gateway filtering all outbound traffic, DLP blocking PII exfiltration, and CASB auditing Google Drive and GitHub — eight layers, one dashboard.">
     <a href="/" style="color: var(--text-dim); font-size: 0.875rem; display: inline-flex; align-items: center; gap: 0.25rem; margin-bottom: 2rem;">&larr; Back to Home</a>
 
     <header style="margin-bottom: 3rem;">
@@ -11,16 +11,18 @@ import Base from '../../layouts/Base.astro';
             <h1 style="font-size: 1.75rem; font-weight: 700;">Zero Trust Demo Lab</h1>
         </div>
         <p style="color: var(--text-muted); font-size: 1.0625rem; margin-bottom: 1.25rem;">
-            A hands-on demo environment for Cloudflare Zero Trust — a clean BYOD device enrolled via WARP, Gateway enforcing identity-aware SWG policies, and Cloudflare Access protecting a live Workers application. No VPN. No firewall exceptions.
+            A full Cloudflare Zero Trust deployment on a personal Mac — eight security layers protecting a live AI application, filtering all outbound traffic, and auditing SaaS accounts. Every finding is real. Every policy is enforced.
         </p>
         <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
             <span class="badge badge-live">Live</span>
             <div style="display: flex; gap: 0.375rem; flex-wrap: wrap;">
                 <span class="tech-tag">WARP</span>
-                <span class="tech-tag">Gateway</span>
+                <span class="tech-tag">Tunnel</span>
                 <span class="tech-tag">Access</span>
-                <span class="tech-tag">GCP</span>
-                <span class="tech-tag">Workers</span>
+                <span class="tech-tag">Gateway</span>
+                <span class="tech-tag">DLP</span>
+                <span class="tech-tag">CASB</span>
+                <span class="tech-tag">Browser Isolation</span>
             </div>
         </div>
     </header>
@@ -29,10 +31,10 @@ import Base from '../../layouts/Base.astro';
         <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">The Problem</h2>
         <div style="color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 0.75rem;">
             <p>
-                Demoing Zero Trust to customers requires showing the full onboarding flow — a fresh, unmanaged device enrolling via WARP for the first time. Corporate laptops already have managed WARP enrolled through MDM. You can't re-enroll or alter the configuration without affecting your actual work setup.
+                Demoing Zero Trust to customers requires showing the full stack live — device enrollment, traffic filtering, identity-gated application access, DLP enforcement, and SaaS audit findings. A corporate laptop can't do this. The WARP client is already enrolled via MDM, Gateway policies are owned by corporate IT, and you can't connect CASB to your own SaaS accounts on a managed device.
             </p>
             <p>
-                The standard workaround — screensharing a pre-configured environment or walking through static screenshots — doesn't land the same way as a live demo. Customers want to see real policy enforcement, real traffic flowing through Gateway, and real Access auth happening in a browser they're watching.
+                The result: most Zero Trust demos are slides and screenshots. Customers hear about the product but never see it work. That gap between pitch and proof is where deals stall.
             </p>
         </div>
     </section>
@@ -41,51 +43,105 @@ import Base from '../../layouts/Base.astro';
         <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">What I Built</h2>
         <div style="color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 0.75rem;">
             <p>
-                A GCP e2-small VM running Ubuntu 22.04, treated as a clean BYOD device. The WARP client is installed and enrolled into a personal Cloudflare Zero Trust organization — replicating exactly what an employee on a personal laptop would experience.
+                A personal Mac running the full Cloudflare Zero Trust stack — every layer configured, every policy enforced, every finding real. The protected application is <a href="/projects/se-intel" style="color: var(--accent);">SE Intel</a>, an internal AI tool containing customer intelligence and competitive data — exactly the kind of application enterprises need to protect.
             </p>
             <p>
-                Gateway DNS and HTTP policies are configured to enforce identity-aware filtering: category-based DNS blocks, HTTP inspection with user identity tied to the enrolled device, and real-time traffic visible in the Activity Log. Cloudflare Access protects a live Workers application — unauthenticated requests are intercepted, the user authenticates via Cloudflare's identity provider, and access is granted based on policy.
+                <strong style="color: var(--text);">Tunnel</strong> hides the origin. SE Intel runs locally on the Mac, exposed at <code>internal.macksportreport.com</code> via an outbound-only encrypted tunnel. Zero inbound ports. The origin IP is invisible.
             </p>
             <p>
-                The full demo runs as a single connected story: a BYOD device enrolls, all traffic is inspected by SWG, and when the user needs to reach an internal application, Access handles auth with no VPN and no firewall rule changes required.
+                <strong style="color: var(--text);">Access</strong> gates the application. Every request to SE Intel requires Google authentication and a passing device posture check — disk encryption enabled, OS version current, firewall active. No VPN. No client certificate prompt. Three-second login.
+            </p>
+            <p>
+                <strong style="color: var(--text);">WARP</strong> enrolls the endpoint. The Mac is a managed device. All DNS queries and HTTP/HTTPS traffic route through Cloudflare Gateway. Device posture checks run every five minutes.
+            </p>
+            <p>
+                <strong style="color: var(--text);">Gateway</strong> filters outbound traffic. DNS policies block malware, phishing, command-and-control, and newly registered domains. HTTP policies block file uploads to personal cloud storage and enforce DLP on the request body.
+            </p>
+            <p>
+                <strong style="color: var(--text);">DLP</strong> scans in transit. Predefined profiles detect credit card numbers, Social Security numbers, and API keys in outbound HTTP requests. Attempts to upload PII to personal email are blocked at the edge.
+            </p>
+            <p>
+                <strong style="color: var(--text);">CASB</strong> scans at rest. OAuth integrations with Google Drive and GitHub surface real findings — publicly shared files, stale access tokens, admin accounts without MFA, OAuth apps with overly broad permissions. Same DLP profiles, different enforcement channel.
+            </p>
+            <p>
+                <strong style="color: var(--text);">Browser Isolation</strong> sandboxes risky sites. Newly registered domains open in a headless Chromium browser in Cloudflare's cloud. The user sees a normal page. Malicious code executes in the sandbox. User actions — copy, paste, download, print — are logged and controllable per policy.
             </p>
         </div>
     </section>
 
     <section style="margin-bottom: 2.5rem;">
         <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Architecture</h2>
-<pre>{`GCP VM (Ubuntu 22.04, e2-small)
-  └── WARP client enrolled → Cloudflare Zero Trust org
-        │
-        ▼
-Cloudflare Edge
-  ├── Gateway — DNS Policy
-  │     └── Category blocks (e.g. Games, Social Media)
-  │           → NXDOMAIN returned, block page shown
-  │
-  ├── Gateway — HTTP Policy
-  │     └── Identity-aware rules tied to enrolled device
-  │           → User email visible in Activity Log
-  │
-  └── Access — Self-hosted Application
-        └── Workers app (se-intel.macksportreport.com)
-              ├── Unauthenticated request intercepted
-              ├── Redirect → Cloudflare login
-              ├── Identity verified → policy evaluated
-              └── Granted → app loads in browser`}</pre>
+<pre>{`Personal Mac (enrolled in WARP)
+│
+├── All DNS → Cloudflare Gateway DNS
+│     ├── Block: malware, phishing, C2, cryptomining, newly registered
+│     └── Log: every query with user identity
+│
+├── All HTTP/HTTPS → Cloudflare Gateway HTTP (TLS inspected)
+│     ├── Block: uploads to personal cloud storage
+│     ├── Block: requests matching DLP profiles (PII, financial)
+│     ├── Isolate: newly registered domains (remote browser)
+│     └── Log: every request with user identity
+│
+├── Device Posture (checked every 5 min)
+│     ├── FileVault: enabled ✓
+│     ├── OS Version: macOS 14+ ✓
+│     └── Firewall: active ✓
+│
+└── internal.macksportreport.com
+      ├── Cloudflare Access
+      │     ├── Require: Google authentication
+      │     └── Require: device posture (FileVault)
+      ├── Cloudflare Tunnel (outbound-only, origin IP hidden)
+      └── SE Intel (localhost:8787)
+
+SaaS Accounts (API scanning via CASB)
+├── Google Drive → posture + content findings
+└── GitHub → posture findings`}</pre>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Why SE Intel as the Protected App</h2>
+        <div style="color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 0.75rem;">
+            <p>
+                A dummy "internal dashboard" would work for the demo flow, but it wouldn't resonate with security buyers. SE Intel is a real application with real sensitive data — customer intelligence, competitive positioning, deal strategy. It has role-based access, it processes queries against a knowledge base, and it stores conversation history. That's exactly the kind of internal tool that CISOs worry about: built by an engineering team, deployed on someone's infrastructure, accessed by the sales team, containing data that would cause real damage if exposed.
+            </p>
+            <p>
+                Protecting SE Intel with Zero Trust creates a two-portfolio-signal moment: the AI application demonstrates engineering depth, and the security architecture around it demonstrates Zero Trust deployment expertise. Both matter for technical pre-sales roles.
+            </p>
+        </div>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">What CASB Actually Found</h2>
+        <div style="color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 0.75rem;">
+            <p>
+                The CASB findings are not fabricated. When I connected my personal Google Drive and GitHub accounts, Cloudflare surfaced real misconfigurations and real content risks:
+            </p>
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.625rem;">
+                <li>&#8226; <strong style="color: var(--text);">Google Drive</strong> — files shared with "anyone with the link" that should have been private, OAuth apps with broad access scopes from integrations I'd forgotten about, and files matching DLP patterns for credentials.</li>
+                <li>&#8226; <strong style="color: var(--text);">GitHub</strong> — personal access tokens without expiry dates, repositories with no branch protection on the default branch, and stale SSH keys.</li>
+            </ul>
+            <p>
+                That's the CASB pitch to a security buyer: "How many Google Drive files in your org are publicly shared right now? You don't know. We can tell you in five minutes."
+            </p>
+        </div>
     </section>
 
     <section style="margin-bottom: 2.5rem;">
         <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Demo Flow</h2>
         <div style="color: var(--text-muted); line-height: 1.7; display: flex; flex-direction: column; gap: 0.75rem;">
             <p>
-                The demo runs as a single narrative across four products — no context switching between dashboards mid-call:
+                The demo runs as a single 20-minute narrative across seven products — no context switching between vendor dashboards:
             </p>
             <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.625rem;">
-                <li>&#8226; <strong style="color: var(--text);">Enrollment</strong> — WARP connects on the VM. The device appears instantly in Zero Trust → My Team → Devices. No MDM, no IT ticket, no waiting.</li>
-                <li>&#8226; <strong style="color: var(--text);">SWG in action</strong> — Browse to a blocked category. DNS policy returns NXDOMAIN, Gateway block page loads. Switch to the Activity Log — the request is there with the user's identity attached.</li>
-                <li>&#8226; <strong style="color: var(--text);">Identity-aware HTTP</strong> — Every outbound request shows the enrolled user's email in Gateway HTTP logs. Policy can be written against identity, not just IP.</li>
-                <li>&#8226; <strong style="color: var(--text);">ZTNA</strong> — Navigate to the protected Workers app. Access intercepts, prompts for login, grants access. No VPN tunnel, no firewall change — the app is never exposed to the public internet.</li>
+                <li>&#8226; <strong style="color: var(--text);">Enrollment</strong> — The Mac appears in Devices with hostname, OS, posture checks all passing. No MDM, no IT ticket.</li>
+                <li>&#8226; <strong style="color: var(--text);">Network</strong> — The Tunnel connector is live. The origin is invisible. A port scan finds nothing.</li>
+                <li>&#8226; <strong style="color: var(--text);">Access</strong> — Open the protected app in an incognito window. Access intercepts, Google authenticates, posture check validates, SE Intel loads. Three seconds.</li>
+                <li>&#8226; <strong style="color: var(--text);">Gateway</strong> — DNS blocks a gambling domain. The Gateway log shows the block with the user's email attached. HTTP policy blocks a file upload. DLP matches PII in the request body.</li>
+                <li>&#8226; <strong style="color: var(--text);">CASB</strong> — Real posture and content findings on real SaaS accounts. Publicly shared Drive files. Stale GitHub tokens. No fabricated data.</li>
+                <li>&#8226; <strong style="color: var(--text);">Isolation</strong> — A newly registered domain opens in a remote browser. User actions are logged. Clipboard and download controls are enforced.</li>
+                <li>&#8226; <strong style="color: var(--text);">Logs</strong> — Every event from every layer in one log pipeline. One dashboard. One identity.</li>
             </ul>
         </div>
     </section>
@@ -93,21 +149,34 @@ Cloudflare Edge
     <section style="margin-bottom: 2.5rem;">
         <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Cloudflare Products Used</h2>
         <div style="display: flex; flex-direction: column; gap: 0.75rem; color: var(--text-muted); line-height: 1.6;">
-            <p><strong style="color: var(--text);">WARP Client</strong> — Enrolls the GCP VM into the Zero Trust organization. All device traffic is tunneled through Cloudflare's edge — DNS and HTTP both inspected by Gateway.</p>
-            <p><strong style="color: var(--text);">Gateway (DNS)</strong> — Category-based DNS policies block entire content categories. Requests to blocked domains return NXDOMAIN and surface a customizable block page.</p>
-            <p><strong style="color: var(--text);">Gateway (HTTP)</strong> — Identity-aware HTTP inspection. Every proxied request carries the enrolled user's identity — policies can be written against email, group membership, device posture, and more.</p>
-            <p><strong style="color: var(--text);">Cloudflare Access</strong> — Self-hosted application protecting a Workers app. Unauthenticated requests are intercepted at the edge, never reaching the origin. Auth is handled entirely by Cloudflare — no SDK changes required in the application.</p>
-            <p><strong style="color: var(--text);">Workers</strong> — The protected application itself, deployed to Cloudflare's edge. Placed behind Access without any code changes — Access operates at the network layer.</p>
+            <p><strong style="color: var(--text);">WARP Client</strong> — Enrolls the Mac into the Zero Trust organization via WireGuard. All DNS and HTTP traffic tunneled through Cloudflare's edge. Device posture checks run on a 5-minute interval.</p>
+            <p><strong style="color: var(--text);">Cloudflare Tunnel</strong> — Outbound-only encrypted connection from the Mac to Cloudflare. SE Intel is exposed at <code>internal.macksportreport.com</code> without opening any inbound ports. Four connections to two PoPs for high availability.</p>
+            <p><strong style="color: var(--text);">Cloudflare Access</strong> — Identity-aware reverse proxy. Google OAuth for authentication, device posture for compliance, JWT-based session management. Per-app policy, per-app audit trail.</p>
+            <p><strong style="color: var(--text);">Gateway (DNS)</strong> — Category-based DNS filtering. Malware, phishing, C2, and newly registered domains blocked at resolution — no connection ever established.</p>
+            <p><strong style="color: var(--text);">Gateway (HTTP)</strong> — TLS-inspected HTTP filtering with identity-aware policies. Blocks file uploads to personal cloud storage. References DLP profiles for sensitive data detection.</p>
+            <p><strong style="color: var(--text);">Data Loss Prevention</strong> — Predefined detection profiles for credit cards, SSNs, API keys. Enforced inline via Gateway HTTP (in transit) and scanned via CASB (at rest). Same profiles, two channels.</p>
+            <p><strong style="color: var(--text);">CASB</strong> — API-based SaaS scanning via OAuth. Connected to Google Drive and GitHub. Surfaces posture misconfigurations and content findings without any agent or traffic redirect.</p>
+            <p><strong style="color: var(--text);">Browser Isolation</strong> — Remote browser rendering via Network Vector Rendering. Risky sites execute in Cloudflare's cloud. User actions (copy, paste, download, print) are logged and controllable per policy.</p>
         </div>
     </section>
 
     <section style="margin-bottom: 2.5rem;">
         <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent);">Why I Built This</h2>
         <ul style="color: var(--text-muted); line-height: 1.7; list-style: none; display: flex; flex-direction: column; gap: 0.625rem;">
-            <li>&#8226; Live demos convert better than slides. Customers selling Zero Trust to their own boards need to see the product actually work — not a screenshot of a dashboard.</li>
-            <li>&#8226; The BYOD story is the most common entry point for Zero Trust conversations with startups. Showing enrollment, SWG, and ZTNA as a single connected flow — on one device — makes the value proposition immediately clear.</li>
-            <li>&#8226; Building the lab forced me to understand the product deeply. Every policy edge case, every enrollment quirk, every Access redirect — I hit them all before the customer did.</li>
+            <li>&#8226; Live demos convert better than slides. When a CISO sees real CASB findings from a real Google Drive account, the conversation shifts from "interesting product" to "when can we run this on our environment?"</li>
+            <li>&#8226; The personal Mac constraint mirrors the BYOD problem every enterprise faces. Showing enrollment, posture enforcement, SWG filtering, and ZTNA on a single unmanaged device is the most common Zero Trust entry point for mid-market and startup customers.</li>
+            <li>&#8226; Building the lab forced me to hit every edge case before a customer does. Certificate pinning exceptions for TLS inspection. Do Not Inspect rule precedence. CASB OAuth scope requirements. Split tunnel mode interactions with Gateway policies. These details matter in deployment conversations.</li>
+            <li>&#8226; The architecture connects two portfolio threads: SE Intel demonstrates AI engineering depth, and the Zero Trust deployment around it demonstrates security platform expertise. Both signals matter for technical pre-sales roles at AI and security companies.</li>
         </ul>
+    </section>
+
+    <section style="margin-bottom: 2.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+            <h2 style="font-size: 1.25rem; font-weight: 600; color: var(--accent);">Deep Dive</h2>
+        </div>
+        <p style="color: var(--text-muted); line-height: 1.7;">
+            For the full technical narrative — every architecture decision, what CASB found, and why each layer exists — read the <a href="/blog/zero-trust-personal-lab" style="color: var(--accent);">blog post</a>.
+        </p>
     </section>
 
 </Base>
