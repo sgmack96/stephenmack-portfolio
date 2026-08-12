@@ -1,0 +1,25 @@
+CLAUDE.md
+  s_d463962a7a27d6::t_e8c756bc25347d 1,9,24,29,34,39,58,63-67,69,72,75,77,81,83,88,90,97,104,108,110,115,124,130-134,137-138,141-144,147-148,150,154-176,185,187,189,191,193,195,197,203,208-211,215-217,220-223,242,246,250,258-264,268-269,278-303,307,311-317,323,325-327,331
+src/content.config.ts
+  s_d463962a7a27d6::t_7d4704de4d3158 25-36
+src/layouts/Base.astro
+  s_d463962a7a27d6::t_444545da836f2b 195
+src/pages/projects/zero-trust-demo-lab.astro
+  s_d463962a7a27d6::t_aa38376f07a7d8 5,14,20,22-25,34,37,46-58,61,64-67,74-128,135,138-144,152-159,166-169,173-181
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "20de946955128ab665a2fbbd0f9c8849b845b686",
+  "prompts": {},
+  "sessions": {
+    "s_d463962a7a27d6": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_032eff4caffeVBRZLwqUcOkPWT",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "smack <smack@cloudflare.com>"
+    }
+  }
+}
