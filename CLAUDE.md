@@ -259,7 +259,7 @@ At the start of every digest session:
 2. **Check today's date** — confirm the correct filename (`YYYY-MM-DD.md`) doesn't already exist before creating it.
 3. **Read the previous digest** — check `src/content/digest/` for the most recent entry to maintain thread continuity (positions established, SE Intel day number, recurring themes).
 4. **Auto-fetch sources** — pull TLDR, Anthropic news/research, OpenAI news/research, Cloudflare Blog, Yahoo Finance, r/wallstreetbets (via old.reddit.com), Hacker News, and Stratechery (free content only). Present findings. Then ask Stephen to paste the gated sources: Morning Brew, Pragmatic Engineer, Stratechery daily Updates, and any WSJ transcripts.
-4a. **Pull today's reading-ladder pick** — `GET <READING_LADDER_URL>/api/today`. This returns the business-track book currently up in the 5-book rotation (Porter, Dixit & Nalebuff, Christensen, Kim & Mauborgne, Horowitz — least-recently-read book surfaces automatically, no manual schedule to track) plus its current chapter and any chapter discussion answered today. If `business.todaysEntries` is non-empty, note the book/chapter/framework for use in step 7. If the fetch fails or returns nothing, skip this step silently — it's a nice-to-have, not a blocker.
+4a. **Pull today's reading-ladder pick** — `GET https://reading-ladder.stephenmack96.workers.dev/api/today`. This returns the business-track book currently up in the 5-book rotation (Porter, Dixit & Nalebuff, Christensen, Kim & Mauborgne, Horowitz — least-recently-read book surfaces automatically, no manual schedule to track) plus its current chapter and any chapter discussion answered today. If `business.todaysEntries` is non-empty, note the book/chapter/framework for use in step 7. If the fetch fails or returns nothing, skip this step silently — it's a nice-to-have, not a blocker.
 5. **Plan sections** — propose 3-4 sections with angles before writing. Confirm before drafting.
 6. **Draft the digest** — write all sections including must-read recommendation and PULSE in the new broader format.
 7. **Voice calibration questions** — before publishing, ask Stephen 3-5 open-ended questions about the day's stories. These should prompt him to react to the takes, share his instincts, and articulate positions in his own words. Examples:
@@ -270,7 +270,7 @@ At the start of every digest session:
    If step 4a surfaced a same-day reading-ladder entry (or even just today's chapter/pre-topics if he hasn't logged an answer yet), replace one of the 3-5 questions with one that bridges the book's framework to a story in today's digest — e.g., "You're on the incumbent's-dilemma chapter in *Innovator's Dilemma* today, and IBM's capex story broke today too — does that framing actually apply to IBM, or is this a different failure mode?" Don't force it if nothing in the day's news actually connects to the book — a bad forced connection is worse than skipping it.
 8. **Revise takes** — incorporate Stephen's phrasing, positions, and instincts into the draft. Over time, build a voice profile of how he frames things: which angles he gravitates toward, where he's more hedged vs. direct, which metaphors feel natural, which frameworks resonate. The goal is that the digest gradually shifts from "well-written AI analysis" to "Stephen's analysis, drafted efficiently." Disagreements are fine — this is about tuning toward his voice, not about agreement.
 
-   If Stephen answered the book-bridge question from step 7, also `POST <READING_LADDER_URL>/api/today/signal` with `{ "bookId": "<business.book.id from step 4a>", "question": "<the bridge question>", "answer": "<his answer>" }`. This runs the same voice-signal extraction reading-ladder uses on chapter answers and stores it against that book, so the answer trains both this file's Voice Profile (below) and reading-ladder's per-book voice signals instead of only one.
+   If Stephen answered the book-bridge question from step 7, also `POST https://reading-ladder.stephenmack96.workers.dev/api/today/signal` with `{ "bookId": "<business.book.id from step 4a>", "question": "<the bridge question>", "answer": "<his answer>" }`. This runs the same voice-signal extraction reading-ladder uses on chapter answers and stores it against that book, so the answer trains both this file's Voice Profile (below) and reading-ladder's per-book voice signals instead of only one.
 9. **Review and publish** — Stephen reviews the revised draft, then run `bash publish.sh`.
 
 ---
@@ -310,6 +310,8 @@ This section captures patterns observed from Stephen's own words during voice ca
 - Applies PR-cover skepticism selectively, not as a reflex — financing terms tightening on one side of a deal (Nvidia's Ohio guarantee) while community terms get more generous on the other isn't automatically spin; sees it as two separate negotiations and normal risk management unless there's a specific reason to think otherwise.
 - Regulatory compliance costs get evaluated pragmatically — a company degrading its own product slightly to satisfy a real regulatory requirement (Anthropic's EU-mandated watermarking) is a fair tradeoff, not a scandal, as long as the actual quality hit is small. The sharper question is usually verifiability/transparency, not the existence of the tradeoff itself.
 - Security expertise as a sales credential, not just a cost center — treats "security fluency now closes enterprise deals" as a real structural shift (OpenAI hiring a security company president as CRO), consistent with the control-plane-consolidation pitch.
+- Comfortable flagging a take as "just vibes" rather than data — on OpenAI vs. Anthropic's revenue divergence, explicitly separated gut feeling (developer-community energy, Anthropic excitement, Altman's public-perception drag) from what's actually measurable (the revenue and profit numbers), rather than dressing up a hunch as analysis.
+- Distinguishes forced remediation from proactive virtue — OpenAI's 20% compute-overhead safety monitoring is "the right call," but credit goes to the response, not to foresight the company didn't have, since the posture followed getting caught, not preceded it.
 
 **Frameworks Stephen gravitates toward:**
 - Zero Trust / continuous verification framing
@@ -337,4 +339,4 @@ This section captures patterns observed from Stephen's own words during voice ca
 
 ---
 
-*Last updated: 2026-08-17*
+*Last updated: 2026-08-19*
